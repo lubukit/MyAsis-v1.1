@@ -1400,3 +1400,113 @@ button {
     padding-inline: 13px;
   }
 }
+
+/* Full app mode */
+html,
+body {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+}
+
+.app-shell {
+  width: 100vw;
+  height: 100dvh;
+  min-height: 100dvh;
+  display: block;
+  padding: 0;
+  overflow: hidden;
+}
+
+.phone {
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  border: 0;
+  border-radius: 0;
+  padding: max(18px, env(safe-area-inset-top)) 20px calc(92px + env(safe-area-inset-bottom));
+  box-shadow: none;
+}
+
+.phone::before {
+  display: none;
+}
+
+.topbar {
+  margin-bottom: 18px;
+}
+
+.weather-card {
+  min-height: 116px;
+  padding: 18px 20px 16px;
+}
+
+.room-tabs {
+  margin: 18px -1px 16px;
+}
+
+.devices {
+  height: calc(100dvh - 365px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  max-height: none;
+  overflow: hidden;
+  align-content: start;
+}
+
+.device-card {
+  min-height: 132px;
+}
+
+.bottom-nav {
+  min-height: calc(76px + env(safe-area-inset-bottom));
+  padding-bottom: calc(18px + env(safe-area-inset-bottom));
+}
+
+.bio-sheet,
+.music-sheet,
+.app-sheet {
+  max-height: calc(100dvh - env(safe-area-inset-top));
+}
+
+@media (max-height: 760px) {
+  .phone {
+    padding-top: max(14px, env(safe-area-inset-top));
+  }
+
+  .weather-card {
+    min-height: 104px;
+    padding-block: 15px 13px;
+  }
+
+  .weather-card h1 {
+    font-size: 20px;
+  }
+
+  .temperature {
+    font-size: 30px;
+  }
+
+  .room-tabs {
+    margin-block: 14px 12px;
+  }
+
+  .devices {
+    height: calc(100dvh - 330px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    gap: 12px;
+  }
+
+  .device-card {
+    min-height: 120px;
+    padding: 14px 14px 12px;
+  }
+
+  .device-card h2 {
+    margin-top: 12px;
+  }
+}
