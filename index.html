@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="ms">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#11101f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Smart Home">
+    <title>Smart Home Dashboard</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <link rel="stylesheet" href="styles.css?v=13">
+  </head>
+  <body>
+    <main class="app-shell" aria-label="Smart home dashboard">
+      <section class="phone">
+        <header class="topbar">
+          <div>
+            <p class="greeting">Hey, <strong>Muaz!</strong></p>
+            <p class="date" id="today">Hari ini</p>
+          </div>
+          <button class="icon-button" id="refreshWeather" type="button" aria-label="Refresh cuaca">
+            <span></span><span></span><span></span><span></span>
+          </button>
+        </header>
+
+        <section class="weather-card" aria-live="polite">
+          <div class="weather-hero">
+            <div class="weather-mark" id="weatherIcon" aria-hidden="true">
+              <span class="sun"></span>
+              <span class="cloud"></span>
+            </div>
+            <div>
+              <h1 id="condition">Memuatkan</h1>
+              <p id="place">Mengesan lokasi</p>
+            </div>
+          </div>
+          <div class="temperature"><span id="temperature">--</span><sup>°</sup></div>
+          <dl class="weather-meta">
+            <div>
+              <dt><span id="feelsLike">--°</span></dt>
+              <dd>Rasa</dd>
+            </div>
+            <div>
+              <dt><span id="humidity">--%</span></dt>
+              <dd>Lembap</dd>
+            </div>
+            <div>
+              <dt><span id="wind">--</span></dt>
+              <dd>Angin</dd>
+            </div>
+            <div>
+              <dt><span id="pressure">--</span></dt>
+              <dd>Tekanan</dd>
+            </div>
+          </dl>
+        </section>
+
+        <nav class="room-tabs" aria-label="Bilik">
+          <button class="tab active" type="button" data-tab="home">All Devices</button>
+          <button class="tab" type="button" data-tab="love">My Love</button>
+          <button class="tab" type="button" data-tab="personal">Personal</button>
+        </nav>
+
+        <section class="devices device-view active" id="homeView" aria-label="Peranti rumah">
+          <article class="device-card accent" role="button" tabindex="0" data-device="aircon">
+            <div class="device-top">
+              <span class="device-icon ac" aria-hidden="true"></span>
+              <span class="signal" aria-hidden="true"></span>
+            </div>
+            <h2>Air Condition</h2>
+            <p>4 Devices</p>
+            <div class="device-bottom">
+              <span data-device-state>ON</span>
+              <span class="switch on" aria-hidden="true" data-device-switch></span>
+            </div>
+          </article>
+
+          <article class="device-card" role="button" tabindex="0" data-device="tv">
+            <div class="device-top">
+              <span class="device-icon tv" aria-hidden="true"></span>
+              <span class="signal" aria-hidden="true"></span>
+            </div>
+            <h2>Smart TV</h2>
+            <p>2 Devices</p>
+            <div class="device-bottom">
+              <span data-device-state>OFF</span>
+              <span class="switch" aria-hidden="true" data-device-switch></span>
+            </div>
+          </article>
+
+          <article class="device-card" role="button" tabindex="0" data-device="lighting">
+            <div class="device-top">
+              <span class="device-icon lamp" aria-hidden="true"></span>
+              <span class="signal" aria-hidden="true"></span>
+            </div>
+            <h2>Smart Lighting</h2>
+            <p>8 Devices</p>
+            <div class="device-bottom">
+              <span data-device-state>OFF</span>
+              <span class="switch" aria-hidden="true" data-device-switch></span>
+            </div>
+          </article>
+
+          <article class="device-card" role="button" tabindex="0" data-device="speaker">
+            <div class="device-top">
+              <span class="device-icon speaker" aria-hidden="true"></span>
+              <span class="signal" aria-hidden="true"></span>
+            </div>
+            <h2>Speaker</h2>
+            <p>6 Devices</p>
+            <div class="device-bottom">
+              <span data-device-state>OFF</span>
+              <span class="switch" aria-hidden="true" data-device-switch></span>
+            </div>
+          </article>
+        </section>
+
+        <section class="devices device-view personal-view" id="personalView" aria-label="Personal" hidden>
+          <article class="device-card personal-card music-card" role="button" tabindex="0" data-action="music">
+            <div class="device-top">
+              <span class="personal-icon music" aria-hidden="true"></span>
+              <span class="action-dot" aria-hidden="true"></span>
+            </div>
+            <h2>Music</h2>
+            <p id="musicCardLabel">Search lagu dan play</p>
+            <div class="device-bottom">
+              <span>OPEN</span>
+              <span class="tiny-arrow" aria-hidden="true"></span>
+            </div>
+          </article>
+
+          <article class="device-card disabled empty-card">
+            <div class="device-top">
+              <span class="love-icon empty" aria-hidden="true"></span>
+              <span class="action-dot muted" aria-hidden="true"></span>
+            </div>
+            <h2>Coming Soon</h2>
+            <p>Kosong dulu</p>
+            <div class="device-bottom">
+              <span>OFF</span>
+              <span class="switch" aria-hidden="true"></span>
+            </div>
+          </article>
+
+          <article class="device-card disabled empty-card">
+            <div class="device-top">
+              <span class="love-icon empty" aria-hidden="true"></span>
+              <span class="action-dot muted" aria-hidden="true"></span>
+            </div>
+            <h2>Coming Soon</h2>
+            <p>Kosong dulu</p>
+            <div class="device-bottom">
+              <span>OFF</span>
+              <span class="switch" aria-hidden="true"></span>
+            </div>
+          </article>
+
+          <article class="device-card disabled empty-card">
+            <div class="device-top">
+              <span class="love-icon empty" aria-hidden="true"></span>
+              <span class="action-dot muted" aria-hidden="true"></span>
+            </div>
+            <h2>Coming Soon</h2>
+            <p>Kosong dulu</p>
+            <div class="device-bottom">
+              <span>OFF</span>
+              <span class="switch" aria-hidden="true"></span>
+            </div>
+          </article>
+        </section>
+
+        <section class="devices device-view love-view" id="loveView" aria-label="My Love" hidden>
+          <article class="device-card love-card action-card" role="button" tabindex="0" data-action="location">
+            <div class="device-top">
+              <span class="love-icon pin" aria-hidden="true"></span>
+              <span class="action-dot" aria-hidden="true"></span>
+            </div>
+            <h2>Lokasi</h2>
+            <p id="loveLocationLabel">Tap untuk set lokasi</p>
+            <div class="device-bottom">
+              <span>OPEN MAPS</span>
+              <span class="tiny-arrow" aria-hidden="true"></span>
+            </div>
+          </article>
+
+          <article class="device-card love-card whatsapp-card">
+            <div class="device-top">
+              <span class="love-icon chat" aria-hidden="true"></span>
+              <span class="action-dot" aria-hidden="true"></span>
+            </div>
+            <h2>WhatsApp</h2>
+            <p id="loveWhatsappLabel">Tap untuk set nombor</p>
+            <div class="love-actions" aria-label="Aksi WhatsApp">
+              <button type="button" data-action="whatsapp">Chat</button>
+              <button type="button" data-action="video">Video</button>
+            </div>
+          </article>
+
+          <article class="device-card love-card bio-card" role="button" tabindex="0" data-action="bio">
+            <div class="device-top">
+              <span class="love-icon bio" aria-hidden="true"></span>
+              <span class="action-dot" aria-hidden="true"></span>
+            </div>
+            <h2>Biodata</h2>
+            <p id="loveBioLabel">Tap untuk isi detail</p>
+            <div class="device-bottom">
+              <span>PROFILE</span>
+              <span class="tiny-arrow" aria-hidden="true"></span>
+            </div>
+          </article>
+
+          <article class="device-card disabled empty-card">
+            <div class="device-top">
+              <span class="love-icon empty" aria-hidden="true"></span>
+              <span class="action-dot muted" aria-hidden="true"></span>
+            </div>
+            <h2>Coming Soon</h2>
+            <p>Kosong dulu</p>
+            <div class="device-bottom">
+              <span>OFF</span>
+              <span class="switch" aria-hidden="true"></span>
+            </div>
+          </article>
+        </section>
+
+        <footer class="bottom-nav" aria-label="Navigasi utama">
+          <button class="nav-item active" type="button" aria-label="Home" data-nav="home">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.4 12 4l9 7.4v7.1a1.5 1.5 0 0 1-1.5 1.5h-4.2v-5.4H8.7V20H4.5A1.5 1.5 0 0 1 3 18.5z"/></svg>
+          </button>
+          <button class="nav-item" type="button" aria-label="Usage" data-nav="usage">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-7.5A1.5 1.5 0 0 1 12 10.5z"/><path d="M15 3.7A9 9 0 0 1 20.3 9H15z"/></svg>
+          </button>
+          <button class="nav-item" type="button" aria-label="Settings" data-nav="settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6z"/><path d="m4.5 13.6-.2-1.6.2-1.6 2.1-.5.7-1.6-1.1-1.9 1.2-1.1 1.9 1.1 1.6-.7.5-2.1H13l.5 2.1 1.6.7 1.9-1.1 1.2 1.1-1.1 1.9.7 1.6 2.1.5.2 1.6-.2 1.6-2.1.5-.7 1.6 1.1 1.9-1.2 1.1-1.9-1.1-1.6.7-.5 2.1h-1.6l-.5-2.1-1.6-.7-1.9 1.1-1.2-1.1 1.1-1.9-.7-1.6z"/></svg>
+          </button>
+          <button class="nav-item" type="button" aria-label="Profile" data-nav="profile">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+          </button>
+        </footer>
+
+        <section class="app-panel" id="usagePanel" aria-label="Usage" hidden>
+          <div class="app-sheet">
+            <div class="sheet-header">
+              <div>
+                <p>Home</p>
+                <h2>Usage</h2>
+              </div>
+              <button class="sheet-close" type="button" data-action="closePanel" aria-label="Tutup usage"></button>
+            </div>
+            <div class="stats-grid">
+              <div><span id="statActive">0</span><small>Devices ON</small></div>
+              <div><span id="statTotal">4</span><small>Total Devices</small></div>
+              <div><span id="statWeather">--°</span><small>Suhu</small></div>
+              <div><span id="statProfile">Muaz</span><small>Profile</small></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="app-panel" id="settingsPanel" aria-label="Settings" hidden>
+          <div class="app-sheet">
+            <div class="sheet-header">
+              <div>
+                <p>Dashboard</p>
+                <h2>Settings</h2>
+              </div>
+              <button class="sheet-close" type="button" data-action="closePanel" aria-label="Tutup settings"></button>
+            </div>
+            <form class="panel-form" id="settingsForm">
+              <label>Nama dashboard<input name="homeName" type="text" placeholder="Smart Home"></label>
+              <label>Default lokasi cuaca<input name="weatherPlace" type="text" placeholder="Kuala Lumpur"></label>
+              <label>Default tab
+                <select name="defaultTab">
+                  <option value="home">All Devices</option>
+                  <option value="love">My Love</option>
+                  <option value="personal">Personal</option>
+                </select>
+              </label>
+              <label>Unit suhu
+                <select name="tempUnit">
+                  <option value="c">Celsius</option>
+                  <option value="f">Fahrenheit</option>
+                </select>
+              </label>
+              <label class="toggle-row"><span>Birthday notification</span><input name="birthdayNotify" type="checkbox"></label>
+              <button class="save-bio" type="submit">Save Settings</button>
+              <button class="danger-button" type="button" data-action="resetApp">Reset App Data</button>
+            </form>
+          </div>
+        </section>
+
+        <section class="app-panel" id="profilePanel" aria-label="Profile" hidden>
+          <div class="app-sheet">
+            <div class="sheet-header">
+              <div>
+                <p id="profileHomeName">Smart Home</p>
+                <h2>Profile</h2>
+              </div>
+              <button class="sheet-close" type="button" data-action="closePanel" aria-label="Tutup profile"></button>
+            </div>
+            <div class="profile-hero">
+              <div id="profileAvatar">M</div>
+              <div>
+                <strong id="profileNameText">Muaz</strong>
+                <span id="profileRoleText">Home Owner</span>
+              </div>
+            </div>
+            <form class="panel-form" id="profileForm">
+              <label>Nama<input name="name" type="text" placeholder="Muaz"></label>
+              <label>Role<input name="role" type="text" placeholder="Home Owner"></label>
+              <label>No. telefon<input name="phone" type="tel" placeholder="60123456789"></label>
+              <label>Email<input name="email" type="email" placeholder="nama@email.com"></label>
+              <label class="wide">Alamat rumah<textarea name="address" rows="3" placeholder="Alamat rumah"></textarea></label>
+              <button class="save-bio" type="submit">Save Profile</button>
+            </form>
+          </div>
+        </section>
+
+        <section class="bio-panel" id="bioPanel" aria-label="Biodata My Love" hidden>
+          <div class="bio-sheet">
+            <div class="bio-header">
+              <div>
+                <p>My Love</p>
+                <h2>Biodata</h2>
+              </div>
+              <button class="sheet-close" type="button" data-action="closeBio" aria-label="Tutup biodata"></button>
+            </div>
+
+            <div class="birthday-strip">
+              <div>
+                <span id="birthdayStatus">Birthday belum diset</span>
+                <strong id="birthdayCountdown">-- hari lagi</strong>
+              </div>
+              <button type="button" data-action="birthdayNotify">Notify</button>
+            </div>
+
+            <form class="bio-form" id="bioForm">
+              <label>Nama penuh<input name="name" type="text" autocomplete="name" placeholder="Nama dia"></label>
+              <label>Nama manja<input name="nickname" type="text" placeholder="Contoh: Sayang"></label>
+              <label>Birthday<input name="birthday" type="date"></label>
+              <label>No. WhatsApp<input name="phone" type="tel" inputmode="tel" placeholder="60123456789"></label>
+              <label>Tarikh kenal<input name="anniversary" type="date"></label>
+              <label>Lokasi / alamat<input name="location" type="text" placeholder="Alamat atau link Maps"></label>
+              <label>Warna favourite<input name="color" type="text" placeholder="Contoh: Pink"></label>
+              <label>Makanan favourite<input name="food" type="text" placeholder="Contoh: Sushi"></label>
+              <label>Minuman favourite<input name="drink" type="text" placeholder="Contoh: Matcha"></label>
+              <label>Hobi<input name="hobby" type="text" placeholder="Contoh: Cafe hunting"></label>
+              <label class="wide">Nota penting<textarea name="notes" rows="3" placeholder="Apa-apa detail yang awak nak ingat"></textarea></label>
+              <button class="save-bio" type="submit">Save Biodata</button>
+            </form>
+          </div>
+        </section>
+
+        <section class="music-panel" id="musicPanel" aria-label="Music player" hidden>
+          <div class="music-sheet">
+            <div class="music-header">
+              <div>
+                <p>Personal</p>
+                <h2>Music</h2>
+              </div>
+              <div class="sheet-actions">
+                <button class="sheet-mini" type="button" data-action="minimizeMusic" aria-label="Minimize music"></button>
+                <button class="sheet-close" type="button" data-action="closeMusic" aria-label="Tutup music"></button>
+              </div>
+            </div>
+
+            <div class="mode-switch" aria-label="Music mode">
+              <button class="active" type="button" data-mode="music">Music</button>
+              <button type="button" data-mode="video">Video</button>
+            </div>
+
+            <div class="music-search">
+              <input id="musicSearch" type="search" placeholder="Cari tajuk, artis, atau lirik ringkas">
+              <button class="search-icon-button" type="button" data-action="songSearch" aria-label="Search lagu"></button>
+              <input id="localMusicFile" type="file" accept="audio/*" hidden>
+            </div>
+
+            <div class="music-player">
+              <iframe id="musicFrame" title="Music video" src="" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>
+              <div class="album-player" id="albumPlayer" hidden>
+                <img id="albumArt" alt="Album cover">
+                <div>
+                  <strong id="albumTitle">Pilih lagu</strong>
+                  <span id="albumArtist">Album art dan music player akan muncul di sini</span>
+                </div>
+                <audio id="audioPlayer" controls preload="none"></audio>
+              </div>
+              <div class="empty-video" id="emptyVideo">Search lagu untuk play music di sini</div>
+              <a class="youtube-fallback" id="youtubeFallback" href="https://www.youtube.com" target="_blank" rel="noreferrer" hidden>Buka di YouTube</a>
+            </div>
+
+            <div class="song-results" id="songResults" aria-label="Result lagu"></div>
+            <button class="local-music-button" type="button" data-action="chooseMusic">Choose MP3 / Full Song</button>
+
+            <div class="lyrics-box">
+              <div class="lyrics-title">
+                <span id="lyricsTitle">Lirik</span>
+                <button type="button" data-action="saveLyrics">Save Lirik</button>
+              </div>
+              <textarea id="lyricsText" rows="8" placeholder="Paste lirik sendiri di sini. Bila play, lirik akan dipaparkan/simpan di bawah video."></textarea>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+    <script src="app.js?v=13" defer></script>
+  </body>
+</html>

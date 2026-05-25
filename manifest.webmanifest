@@ -1,0 +1,17 @@
+{
+  "name": "Smart Home Dashboard",
+  "short_name": "Smart Home",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#11101f",
+  "theme_color": "#11101f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
