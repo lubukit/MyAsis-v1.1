@@ -51,7 +51,7 @@ const storage = {
 const bioFields = ["name", "nickname", "birthday", "phone", "anniversary", "location", "color", "food", "drink", "hobby", "notes"];
 const profileFields = ["name", "role", "phone", "email", "address"];
 const settingsFields = ["homeName", "weatherPlace", "defaultTab", "tempUnit", "birthdayNotify", "salaryDay", "salaryTime", "bankName", "bankAccount", "bankHolder"];
-const companyFields = ["name", "phone", "email", "instagram", "facebook", "tiktok", "address"];
+const companyFields = ["name", "ssm", "phone", "email", "instagram", "facebook", "tiktok", "linkedin", "threads", "x", "address"];
 let musicMode = "music";
 let selectedCalendarDate = new Date();
 let quotationItems = [];
@@ -259,7 +259,23 @@ function updateWeatherIcon(condition) {
   icon.classList.toggle("clear", /Clear/i.test(condition));
 }
 
+function activeViewName() {
+  return document.querySelector(".tab.active")?.dataset.tab || "home";
+}
+
+function canRenderWeather() {
+  return !["personal", "lubuk"].includes(activeViewName());
+}
+
+function setMetricLabels(labels) {
+  document.querySelectorAll(".weather-meta dd").forEach((label, index) => {
+    label.textContent = labels[index] || "";
+  });
+}
+
 function updateWeather(data, placeLabel) {
+  if (!canRenderWeather()) return;
+  setMetricLabels(["Sensible", "Humidity", "W. force", "Pressure"]);
   document.querySelector(".weather-card").classList.remove("sale-summary-card");
   $("weatherIcon").classList.remove("sale-mark");
   const current = data.current;
@@ -300,6 +316,8 @@ async function getDeviceLocation() {
 }
 
 async function loadWeather() {
+  if (!canRenderWeather()) return;
+  setMetricLabels(["Sensible", "Humidity", "W. force", "Pressure"]);
   document.querySelector(".weather-card").classList.remove("sale-summary-card");
   $("weatherIcon").classList.remove("sale-mark");
   $("condition").textContent = "Memuatkan";
@@ -317,6 +335,7 @@ async function loadWeather() {
     if (!response.ok) throw new Error("Weather request failed");
     updateWeather(await response.json(), location.label);
   } catch {
+    if (!canRenderWeather()) return;
     $("condition").textContent = "Cloudy";
     $("place").textContent = getSettings().weatherPlace || DEFAULT_LOCATION.label;
     $("temperature").textContent = String(Math.round(toDisplayTemp(28)));
@@ -1016,11 +1035,15 @@ function checkSalaryNotifications() {
 function getCompany() {
   return readJson("company", {
     name: "Lubuk IT",
+    ssm: "",
     phone: "",
     email: "",
     instagram: "",
     facebook: "",
     tiktok: "",
+    linkedin: "",
+    threads: "",
+    x: "",
     address: ""
   });
 }
@@ -1121,7 +1144,23 @@ function setSops(items) {
 
 function openSopPanel() {
   openAppPanel("sopPanel");
+  resetSopForm();
   renderSops();
+}
+
+function setSopBuilderVisible(visible) {
+  $("sopForm").hidden = !visible;
+  $("addSopButton").hidden = visible;
+}
+
+function resetSopForm() {
+  $("sopForm").reset();
+  setSopBuilderVisible(false);
+}
+
+function toggleSopBuilder() {
+  setSopBuilderVisible(true);
+  $("sopTitle").focus();
 }
 
 function saveSop(event) {
@@ -1133,15 +1172,15 @@ function saveSop(event) {
     return;
   }
   setSops([{ id: Date.now(), title, steps }, ...getSops()]);
-  $("sopForm").reset();
+  resetSopForm();
   renderSops();
 }
 
 function renderSops() {
   const sops = getSops();
   $("sopList").innerHTML = sops.length ? sops.map((sop) => `
-    <article class="ops-card">
-      <div class="ops-head">
+    <article class="ops-card sop-card" data-sop-card="${sop.id}">
+      <div class="ops-head" data-toggle-sop="${sop.id}">
         <h3>${escapeHtml(sop.title)}</h3>
         <button type="button" data-delete-sop="${sop.id}">Delete</button>
       </div>
@@ -1269,7 +1308,53 @@ function copyCompanyField(target) {
   const field = target.closest("input, textarea");
   if (!field || !field.name || !companyFields.includes(field.name)) return;
   const label = field.closest("label")?.childNodes?.[0]?.textContent?.trim() || field.name;
-  copyText(field.value, label);
+  copyText(getSocialUrl(field.name, field.value) || field.value, label);
+}
+
+function getSocialUrl(type, value) {
+  const clean = String(value || "").trim();
+  if (!clean) return "";
+  if (/^https?:\/\//i.test(clean)) return clean;
+  const handle = clean.replace(/^@/, "");
+  const urls = {
+    instagram: `https://instagram.com/${handle}`,
+    facebook: `https://facebook.com/${handle}`,
+    tiktok: `https://tiktok.com/@${handle}`,
+    linkedin: clean.includes("/") ? `https://linkedin.com/${clean}` : `https://linkedin.com/in/${handle}`,
+    threads: `https://threads.net/@${handle}`,
+    x: `https://x.com/${handle}`
+  };
+  return urls[type] || "";
+}
+
+function openSocialProfile(type) {
+  const value = $("companyForm").elements[type]?.value || "";
+  const url = getSocialUrl(type, value);
+  if (!url) {
+    window.alert("Username/link belum diisi.");
+    return;
+  }
+  window.open(url, "_blank", "noopener");
+}
+
+function downloadCompanyLogo(type) {
+  const company = getCompany();
+  const name = company.name || "Lubuk IT";
+  const palette = {
+    color: { bg: "#11101f", fg: "#8afbf1" },
+    white: { bg: "#11101f", fg: "#ffffff" },
+    black: { bg: "#ffffff", fg: "#111111" },
+    dp: { bg: "#8afbf1", fg: "#11101f" }
+  }[type] || { bg: "#11101f", fg: "#8afbf1" };
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200"><rect width="1200" height="1200" rx="${type === "dp" ? 260 : 80}" fill="${palette.bg}"/><text x="600" y="590" text-anchor="middle" font-family="Arial, sans-serif" font-size="130" font-weight="800" fill="${palette.fg}">${escapeHtml(name)}</text><text x="600" y="700" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" fill="${palette.fg}" opacity=".72">${escapeHtml(company.ssm || "Lubuk IT Enterprise")}</text></svg>`;
+  const blob = new Blob([svg], { type: "image/svg+xml" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-logo-${type}.svg`;
+  document.body.appendChild(link);
+  link.click();
+  URL.revokeObjectURL(link.href);
+  link.remove();
 }
 
 function setPriceBuilderVisible(visible) {
@@ -1422,6 +1507,7 @@ function isSameWeek(date, now) {
 
 function renderSaleSummary() {
   if (!$("condition")) return;
+  setMetricLabels(["Daily", "Weekly", "Monthly", "Active"]);
   document.querySelector(".weather-card").classList.add("sale-summary-card");
   $("weatherIcon").classList.add("sale-mark");
   const sales = getSales();
@@ -1434,7 +1520,7 @@ function renderSaleSummary() {
   const monthly = totalFor((date) => date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth());
   const activeProjects = sales.filter((sale) => !["finish", "cancel"].includes(sale.status || "in-project")).length;
 
-  $("condition").textContent = "Sale Detail";
+  $("condition").textContent = "Sale Report";
   $("place").textContent = `${sales.length} sale record`;
   $("temperature").textContent = formatMoney(monthly).replace("RM ", "RM");
   $("feelsLike").textContent = formatMoney(daily).replace("RM ", "RM");
@@ -2181,6 +2267,8 @@ function setupInteractions() {
     const nav = event.target.closest("[data-nav]");
     const device = event.target.closest("[data-device]");
     const mode = event.target.closest("[data-mode]");
+    const socialButton = event.target.closest("[data-open-social]");
+    const logoButton = event.target.closest("[data-download-logo]");
 
     if (nav) {
       handleNav(nav.dataset.nav);
@@ -2200,6 +2288,16 @@ function setupInteractions() {
 
     if (device) {
       toggleDevice(device.dataset.device);
+      return;
+    }
+
+    if (socialButton) {
+      openSocialProfile(socialButton.dataset.openSocial);
+      return;
+    }
+
+    if (logoButton) {
+      downloadCompanyLogo(logoButton.dataset.downloadLogo);
       return;
     }
 
@@ -2233,6 +2331,8 @@ function setupInteractions() {
     if (type === "achievement") openAchievementPanel();
     if (type === "addNewService") togglePriceBuilder();
     if (type === "cancelAddService") resetPriceForm();
+    if (type === "addNewSOP") toggleSopBuilder();
+    if (type === "cancelAddSOP") resetSopForm();
     if (type === "restoreDefaultPricelist") restoreDefaultPricelist();
   });
 
@@ -2284,8 +2384,13 @@ function setupInteractions() {
 
   $("sopList").addEventListener("click", (event) => {
     const button = event.target.closest("[data-delete-sop]");
-    if (!button) return;
-    deleteSop(button.dataset.deleteSop);
+    if (button) {
+      deleteSop(button.dataset.deleteSop);
+      return;
+    }
+    const toggle = event.target.closest("[data-toggle-sop]");
+    if (!toggle) return;
+    toggle.closest("[data-sop-card]")?.classList.toggle("open");
   });
 
   $("achievementList").addEventListener("click", (event) => {
