@@ -2796,7 +2796,7 @@ body {
   max-height: 100dvh;
   border: 0;
   border-radius: 0;
-  padding: max(18px, env(safe-area-inset-top)) 20px calc(88px + env(safe-area-inset-bottom));
+  padding: max(18px, env(safe-area-inset-top)) 20px calc(80px + env(safe-area-inset-bottom));
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -2878,13 +2878,17 @@ body {
   z-index: 30;
   left: 0;
   right: 0;
-  bottom: 0;
-  min-height: calc(76px + env(safe-area-inset-bottom));
-  padding-top: 10px;
-  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  bottom: calc(env(safe-area-inset-bottom) * -1);
+  min-height: calc(70px + env(safe-area-inset-bottom));
+  align-items: flex-start;
+  padding: 8px 28px calc(10px + env(safe-area-inset-bottom));
   background:
     linear-gradient(180deg, rgba(29, 27, 45, 0.86), rgba(21, 20, 34, 0.98));
   box-shadow: 0 -14px 34px rgba(0, 0, 0, 0.18);
+}
+
+.bottom-nav .nav-item {
+  margin-top: 2px;
 }
 
 .bio-sheet,
