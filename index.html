@@ -2,7 +2,7 @@
 <html lang="ms">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#11101f">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -10,7 +10,7 @@
     <title>Smart Home Dashboard</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" href="icon.svg">
-    <link rel="stylesheet" href="styles.css?v=49">
+    <link rel="stylesheet" href="styles.css?v=53">
   </head>
   <body>
     <main class="app-shell" aria-label="Smart home dashboard">
@@ -32,27 +32,27 @@
               <span class="cloud"></span>
             </div>
             <div>
-              <h1 id="condition">Sale Detail</h1>
-              <p id="place">Daily, weekly, monthly</p>
+              <h1 id="condition">Cloudy</h1>
+              <p id="place">Kuala Lumpur</p>
             </div>
           </div>
-          <div class="temperature"><span id="temperature">RM0</span></div>
+          <div class="temperature"><span id="temperature">28</span></div>
           <dl class="weather-meta">
             <div>
-              <dt><span id="feelsLike">RM0</span></dt>
-              <dd>Daily</dd>
+              <dt><span id="feelsLike">31°</span></dt>
+              <dd>Sensible</dd>
             </div>
             <div>
-              <dt><span id="humidity">RM0</span></dt>
-              <dd>Weekly</dd>
+              <dt><span id="humidity">65%</span></dt>
+              <dd>Humidity</dd>
             </div>
             <div>
-              <dt><span id="wind">RM0</span></dt>
-              <dd>Monthly</dd>
+              <dt><span id="wind">3</span></dt>
+              <dd>W. force</dd>
             </div>
             <div>
-              <dt><span id="pressure">0</span></dt>
-              <dd>Project</dd>
+              <dt><span id="pressure">1009hpa</span></dt>
+              <dd>Pressure</dd>
             </div>
           </dl>
         </section>
@@ -210,7 +210,7 @@
         <section class="devices device-view lubuk-view" id="lubukView" aria-label="Lubuk IT" hidden>
           <article class="device-card lubuk-card" role="button" tabindex="0" data-action="companyDetail">
             <div class="device-top">
-              <span class="personal-icon lubuk" aria-hidden="true"></span>
+              <span class="personal-icon company-icon" aria-hidden="true"></span>
               <span class="action-dot" aria-hidden="true"></span>
             </div>
             <h2>Company Detail</h2>
@@ -223,11 +223,11 @@
 
           <article class="device-card lubuk-card" role="button" tabindex="0" data-action="priceList">
             <div class="device-top">
-              <span class="personal-icon lubuk" aria-hidden="true"></span>
+              <span class="personal-icon price-icon" aria-hidden="true"></span>
               <span class="action-dot" aria-hidden="true"></span>
             </div>
-            <h2>Pricelist</h2>
-            <p>Senarai servis dan harga</p>
+            <h2>Pricelist and Booking</h2>
+            <p>Harga, package dan booking</p>
             <div class="device-bottom">
               <span>OPEN</span>
               <span class="tiny-arrow" aria-hidden="true"></span>
@@ -236,7 +236,7 @@
 
           <article class="device-card lubuk-card" role="button" tabindex="0" data-action="project">
             <div class="device-top">
-              <span class="personal-icon lubuk" aria-hidden="true"></span>
+              <span class="personal-icon project-icon" aria-hidden="true"></span>
               <span class="action-dot" aria-hidden="true"></span>
             </div>
             <h2>Project</h2>
@@ -249,11 +249,11 @@
 
           <article class="device-card lubuk-card sale-box" role="button" tabindex="0" data-action="sales">
             <div class="device-top">
-              <span class="personal-icon lubuk" aria-hidden="true"></span>
+              <span class="personal-icon sale-icon" aria-hidden="true"></span>
               <span class="action-dot" aria-hidden="true"></span>
             </div>
             <h2>Sale</h2>
-            <p>Booking dan client detail</p>
+            <p>Sale report dan revenue</p>
             <div class="device-bottom">
               <span>OPEN</span>
               <span class="tiny-arrow" aria-hidden="true"></span>
@@ -262,7 +262,7 @@
 
           <article class="device-card lubuk-card" role="button" tabindex="0" data-action="sop">
             <div class="device-top">
-              <span class="personal-icon lubuk" aria-hidden="true"></span>
+              <span class="personal-icon sop-icon" aria-hidden="true"></span>
               <span class="action-dot" aria-hidden="true"></span>
             </div>
             <h2>SOP</h2>
@@ -275,7 +275,7 @@
 
           <article class="device-card lubuk-card" role="button" tabindex="0" data-action="achievement">
             <div class="device-top">
-              <span class="personal-icon lubuk" aria-hidden="true"></span>
+              <span class="personal-icon achievement-icon" aria-hidden="true"></span>
               <span class="action-dot" aria-hidden="true"></span>
             </div>
             <h2>Achievement</h2>
@@ -519,12 +519,23 @@
 
             <form class="panel-form" id="companyForm">
               <label>Company name<input name="name" type="text" placeholder="Lubuk IT"></label>
+              <label>No SSM<input name="ssm" type="text" placeholder="202401234567"></label>
               <label>Phone<input name="phone" type="tel" placeholder="60123456789"></label>
               <label>Email<input name="email" type="email" placeholder="sales@lubukit.com"></label>
-              <label>Instagram<input name="instagram" type="text" placeholder="@lubukit"></label>
-              <label>Facebook<input name="facebook" type="text" placeholder="Lubuk IT"></label>
-              <label>TikTok<input name="tiktok" type="text" placeholder="@lubukit"></label>
+              <label>Instagram<div class="social-field"><input name="instagram" type="text" placeholder="@lubukit"><button type="button" data-open-social="instagram">IG</button></div></label>
+              <label>Facebook<div class="social-field"><input name="facebook" type="text" placeholder="Lubuk IT"><button type="button" data-open-social="facebook">FB</button></div></label>
+              <label>TikTok<div class="social-field"><input name="tiktok" type="text" placeholder="@lubukit"><button type="button" data-open-social="tiktok">TT</button></div></label>
+              <label>LinkedIn<div class="social-field"><input name="linkedin" type="text" placeholder="company/lubuk-it"><button type="button" data-open-social="linkedin">IN</button></div></label>
+              <label>Threads<div class="social-field"><input name="threads" type="text" placeholder="@lubukit"><button type="button" data-open-social="threads">TH</button></div></label>
+              <label>X<div class="social-field"><input name="x" type="text" placeholder="@lubukit"><button type="button" data-open-social="x">X</button></div></label>
               <label class="wide">Address<textarea name="address" rows="2" placeholder="Alamat syarikat"></textarea></label>
+              <div class="logo-downloads wide">
+                <span>Download logo</span>
+                <button type="button" data-download-logo="color">Logo Color</button>
+                <button type="button" data-download-logo="white">Logo White</button>
+                <button type="button" data-download-logo="black">Logo Black</button>
+                <button type="button" data-download-logo="dp">Logo DP</button>
+              </div>
               <button class="save-bio" id="companySubmit" type="submit">Edit Company Detail</button>
             </form>
           </div>
@@ -639,10 +650,12 @@
               </div>
               <button class="sheet-close" type="button" data-action="closePanel" aria-label="Tutup SOP"></button>
             </div>
-            <form class="panel-form" id="sopForm">
+            <button class="download-button add-service-button" id="addSopButton" type="button" data-action="addNewSOP">Add New SOP</button>
+            <form class="panel-form" id="sopForm" hidden>
               <label>Title<input id="sopTitle" type="text" placeholder="Contoh: Design Handover"></label>
               <label class="wide">Steps<textarea id="sopSteps" rows="4" placeholder="Satu step satu line"></textarea></label>
               <button class="save-bio" type="submit">Save SOP</button>
+              <button class="text-cancel wide" type="button" data-action="cancelAddSOP">Cancel Add</button>
             </form>
             <div class="ops-list" id="sopList"></div>
           </div>
@@ -757,7 +770,7 @@
     </main>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js" defer></script>
-    <script src="firebase-config.js?v=49" defer></script>
-    <script src="app.js?v=49" defer></script>
+    <script src="firebase-config.js?v=53" defer></script>
+    <script src="app.js?v=53" defer></script>
   </body>
 </html>

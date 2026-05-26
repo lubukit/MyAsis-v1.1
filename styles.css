@@ -143,6 +143,8 @@ button {
   background:
     radial-gradient(circle at 11% 10%, rgba(255, 255, 255, 0.62), transparent 9rem),
     linear-gradient(135deg, #7bfff2 0%, #bafff2 52%, #86f8ef 100%);
+  background-size: 160% 160%;
+  animation: aliveGradient 10s ease-in-out infinite alternate;
   color: var(--ink);
   box-shadow: 0 18px 46px rgba(52, 251, 231, 0.14);
 }
@@ -151,6 +153,7 @@ button {
   background:
     radial-gradient(circle at 11% 10%, rgba(255, 255, 255, 0.5), transparent 9rem),
     linear-gradient(135deg, #78e5ff 0%, #8afbf1 54%, #b8fff5 100%);
+  background-size: 160% 160%;
 }
 
 .weather-card[hidden] {
@@ -164,6 +167,8 @@ button {
   background:
     radial-gradient(circle at 15% 0%, rgba(255, 255, 255, 0.62), transparent 9rem),
     linear-gradient(135deg, #7bfff2 0%, #bafff2 52%, #86f8ef 100%);
+  background-size: 160% 160%;
+  animation: aliveGradient 10s ease-in-out infinite alternate;
   color: var(--ink);
   box-shadow: 0 18px 46px rgba(52, 251, 231, 0.14);
 }
@@ -707,6 +712,115 @@ button {
   box-shadow: 0 -7px 0 -1px currentColor;
 }
 
+.company-icon::before {
+  left: 5px;
+  top: 5px;
+  width: 19px;
+  height: 19px;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  box-shadow: inset 0 -7px 0 -4px currentColor;
+}
+
+.company-icon::after {
+  left: 11px;
+  top: 2px;
+  width: 7px;
+  height: 6px;
+  border: 2px solid currentColor;
+  border-bottom: 0;
+}
+
+.price-icon::before {
+  left: 5px;
+  top: 4px;
+  width: 19px;
+  height: 21px;
+  border: 2px solid currentColor;
+  border-radius: 5px;
+}
+
+.price-icon::after {
+  left: 10px;
+  top: 10px;
+  width: 10px;
+  height: 2px;
+  background: currentColor;
+  box-shadow: 0 5px 0 currentColor, 0 10px 0 currentColor;
+}
+
+.project-icon::before {
+  left: 4px;
+  top: 5px;
+  width: 21px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-radius: 5px;
+}
+
+.project-icon::after {
+  left: 9px;
+  top: 11px;
+  width: 12px;
+  height: 2px;
+  background: currentColor;
+  box-shadow: 0 5px 0 currentColor;
+}
+
+.sale-icon::before {
+  left: 4px;
+  top: 15px;
+  width: 5px;
+  height: 9px;
+  background: currentColor;
+  box-shadow: 8px -5px 0 currentColor, 16px -10px 0 currentColor;
+}
+
+.sale-icon::after {
+  left: 4px;
+  top: 5px;
+  width: 20px;
+  height: 15px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+}
+
+.sop-icon::before {
+  left: 6px;
+  top: 3px;
+  width: 17px;
+  height: 22px;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+}
+
+.sop-icon::after {
+  left: 10px;
+  top: 10px;
+  width: 10px;
+  height: 2px;
+  background: currentColor;
+  box-shadow: 0 5px 0 currentColor, 0 10px 0 currentColor;
+}
+
+.achievement-icon::before {
+  left: 7px;
+  top: 5px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+}
+
+.achievement-icon::after {
+  left: 12px;
+  top: 18px;
+  width: 6px;
+  height: 9px;
+  background: currentColor;
+  clip-path: polygon(50% 0, 100% 100%, 50% 75%, 0 100%);
+}
+
 .pin::before {
   left: 6px;
   top: 2px;
@@ -968,9 +1082,9 @@ button {
 .bio-panel,
 .music-panel,
 .app-panel {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 5;
+  z-index: 60;
   display: grid;
   align-items: end;
   background: rgba(6, 6, 13, 0.58);
@@ -986,9 +1100,10 @@ button {
 .bio-sheet,
 .music-sheet,
 .app-sheet {
-  max-height: 88%;
+  width: 100%;
+  max-height: calc(92dvh - env(safe-area-inset-top));
   overflow-y: auto;
-  padding: 22px 20px 28px;
+  padding: 22px 20px calc(28px + env(safe-area-inset-bottom));
   border-radius: 28px 28px 0 0;
   background: #171625;
   box-shadow: 0 -22px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
@@ -1821,6 +1936,47 @@ button {
   padding: 9px 0 0;
 }
 
+.social-field {
+  display: grid;
+  grid-template-columns: 1fr 42px;
+  gap: 8px;
+}
+
+.social-field button {
+  border: 0;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #79fff0, #b8fff5);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.logo-downloads {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.logo-downloads span {
+  grid-column: 1 / -1;
+  color: var(--mint);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.logo-downloads button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(138, 251, 241, 0.14);
+  color: var(--mint);
+  font-size: 11px;
+  font-weight: 900;
+}
+
 .panel-form:not(.is-editing) .copy-ready {
   cursor: copy;
   caret-color: transparent;
@@ -2397,8 +2553,13 @@ button {
 }
 
 .ops-card ol {
+  display: none;
   margin: 10px 0 0;
   padding-left: 18px;
+}
+
+.ops-card.open ol {
+  display: block;
 }
 
 .ops-head strong {
@@ -2478,6 +2639,16 @@ button {
   }
 }
 
+@keyframes aliveGradient {
+  from {
+    background-position: 0% 50%;
+  }
+
+  to {
+    background-position: 100% 50%;
+  }
+}
+
 .bottom-nav {
   position: absolute;
   left: 0;
@@ -2545,6 +2716,24 @@ button {
     max-height: none;
     overflow: visible;
   }
+
+  .lubuk-view .device-card,
+  .device-card {
+    min-height: 148px;
+  }
+
+  .device-card h2 {
+    font-size: 15px;
+  }
+
+  .device-card p {
+    font-size: 11px;
+    line-height: 1.25;
+  }
+
+  .device-bottom {
+    margin-top: 14px;
+  }
 }
 
 @media (max-width: 350px) {
@@ -2572,16 +2761,26 @@ body {
   height: 100%;
   min-height: 100%;
   overflow: hidden;
+  touch-action: pan-y;
+  background: #0f0e1d;
+}
+
+html {
+  height: -webkit-fill-available;
 }
 
 body {
   position: fixed;
   inset: 0;
+  min-height: 100svh;
+  min-height: -webkit-fill-available;
 }
 
 .app-shell {
   width: 100vw;
   height: 100dvh;
+  min-height: 100svh;
+  min-height: -webkit-fill-available;
   min-height: 100dvh;
   display: block;
   padding: 0;
@@ -2591,12 +2790,23 @@ body {
 .phone {
   width: 100%;
   height: 100dvh;
+  min-height: 100svh;
+  min-height: -webkit-fill-available;
   min-height: 100dvh;
   max-height: 100dvh;
   border: 0;
   border-radius: 0;
-  padding: max(18px, env(safe-area-inset-top)) 20px calc(92px + env(safe-area-inset-bottom));
+  padding: max(18px, env(safe-area-inset-top)) 20px calc(88px + env(safe-area-inset-bottom));
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
   box-shadow: none;
+  scrollbar-width: none;
+}
+
+.phone::-webkit-scrollbar {
+  display: none;
 }
 
 .phone::before {
@@ -2622,19 +2832,59 @@ body {
 }
 
 .devices {
-  height: calc(100dvh - 365px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  height: auto;
+  min-height: 0;
   max-height: none;
-  overflow: hidden;
+  overflow: visible;
   align-content: start;
+  padding-bottom: 18px;
 }
 
 .device-card {
-  min-height: 132px;
+  min-height: 142px;
+  overflow: hidden;
+}
+
+.lubuk-view .device-card {
+  min-height: 152px;
+  padding: 16px 16px 14px;
+}
+
+.device-top {
+  flex: 0 0 auto;
+}
+
+.device-card h2,
+.device-card p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.device-bottom {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.tiny-arrow,
+.action-dot,
+.personal-icon,
+.love-icon,
+.device-icon {
+  flex: 0 0 auto;
 }
 
 .bottom-nav {
+  position: fixed;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  bottom: 0;
   min-height: calc(76px + env(safe-area-inset-bottom));
-  padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  padding-top: 10px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  background:
+    linear-gradient(180deg, rgba(29, 27, 45, 0.86), rgba(21, 20, 34, 0.98));
+  box-shadow: 0 -14px 34px rgba(0, 0, 0, 0.18);
 }
 
 .bio-sheet,
@@ -2684,7 +2934,7 @@ body {
   }
 
   .devices {
-    height: calc(100dvh - 330px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    height: auto;
     gap: 12px;
   }
 
