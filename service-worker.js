@@ -1,11 +1,23 @@
-const CACHE_NAME = "smart-home-dashboard-v14";
+const CACHE_NAME = "smart-home-dashboard-v49";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./firebase-config.js",
   "./manifest.webmanifest",
-  "./icon.svg"
+  "./icon.svg",
+  "./assets/pricelist/ecommerce-poster-design.jpg",
+  "./assets/pricelist/flyers-design.jpg",
+  "./assets/pricelist/poster-social-media.jpg",
+  "./assets/pricelist/menu-design.jpg",
+  "./assets/pricelist/menu-design-alt.jpg",
+  "./assets/pricelist/packaging-design.jpg",
+  "./assets/pricelist/bunting-banner-design.jpg",
+  "./assets/pricelist/poster-design.jpg",
+  "./assets/pricelist/sticker-design.jpg",
+  "./assets/pricelist/tiktok-live-design.jpg",
+  "./assets/pricelist/logo-branding.jpg"
 ];
 
 self.addEventListener("install", (event) => {
