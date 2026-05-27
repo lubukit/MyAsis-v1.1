@@ -1,4 +1,4 @@
-const CACHE_NAME = "smart-home-dashboard-v57";
+const CACHE_NAME = "smart-home-dashboard-v86";
 const ASSETS = [
   "./",
   "./index.html",
@@ -7,6 +7,13 @@ const ASSETS = [
   "./firebase-config.js",
   "./manifest.webmanifest",
   "./icon.svg",
+  "./assets/brand/lubukit-secondary-logo.png",
+  "./assets/brand/lubukit-full-color.png",
+  "./assets/brand/lubukit-font-color.png",
+  "./assets/brand/lubukit-font-black.png",
+  "./assets/brand/lubukit-icon-color.png",
+  "./assets/brand/lubukit-icon-black.png",
+  "./assets/brand/lubukit-logo-dp.jpg",
   "./assets/pricelist/ecommerce-poster-design.jpg",
   "./assets/pricelist/flyers-design.jpg",
   "./assets/pricelist/poster-social-media.jpg",

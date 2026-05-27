@@ -10,7 +10,7 @@
     <title>Smart Home Dashboard</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" href="icon.svg">
-    <link rel="stylesheet" href="styles.css?v=57">
+    <link rel="stylesheet" href="styles.css?v=86">
   </head>
   <body>
     <main class="app-shell" aria-label="Smart home dashboard">
@@ -74,68 +74,27 @@
         </section>
 
         <nav class="room-tabs" aria-label="Bilik">
-          <button class="tab active" type="button" data-tab="home">Main</button>
+          <button class="tab active" type="button" data-tab="main">Main</button>
           <button class="tab" type="button" data-tab="love">My Love</button>
           <button class="tab" type="button" data-tab="personal">Personal</button>
-          <button class="tab" type="button" data-tab="hacking">Hacking</button>
           <button class="tab" type="button" data-tab="lubuk">Lubuk IT</button>
         </nav>
 
-        <section class="devices device-view active" id="homeView" aria-label="Peranti rumah">
-          <article class="quote-card">
-            <p id="mainQuote">Small steps, strong home.</p>
-          </article>
-          <article class="device-card accent" role="button" tabindex="0" data-device="aircon">
-            <div class="device-top">
-              <span class="device-icon ac" aria-hidden="true"></span>
-              <span class="signal" aria-hidden="true"></span>
+        <section class="main-view device-view" id="mainView" aria-label="Main">
+          <section class="main-clock-card" aria-live="polite">
+            <div>
+              <p id="mainClockGreeting">Welcome</p>
+              <h2 id="mainClockTime">00:00</h2>
+              <span id="mainClockDate">Today</span>
             </div>
-            <h2>Air Condition</h2>
-            <p>4 Devices</p>
-            <div class="device-bottom">
-              <span data-device-state>ON</span>
-              <span class="switch on" aria-hidden="true" data-device-switch></span>
+          </section>
+          <section class="main-notification-panel">
+            <div class="main-panel-title">
+              <h3>Notifications</h3>
+              <span id="mainNotificationCount">0</span>
             </div>
-          </article>
-
-          <article class="device-card" role="button" tabindex="0" data-device="tv">
-            <div class="device-top">
-              <span class="device-icon tv" aria-hidden="true"></span>
-              <span class="signal" aria-hidden="true"></span>
-            </div>
-            <h2>Smart TV</h2>
-            <p>2 Devices</p>
-            <div class="device-bottom">
-              <span data-device-state>OFF</span>
-              <span class="switch" aria-hidden="true" data-device-switch></span>
-            </div>
-          </article>
-
-          <article class="device-card" role="button" tabindex="0" data-device="lighting">
-            <div class="device-top">
-              <span class="device-icon lamp" aria-hidden="true"></span>
-              <span class="signal" aria-hidden="true"></span>
-            </div>
-            <h2>Smart Lighting</h2>
-            <p>8 Devices</p>
-            <div class="device-bottom">
-              <span data-device-state>OFF</span>
-              <span class="switch" aria-hidden="true" data-device-switch></span>
-            </div>
-          </article>
-
-          <article class="device-card" role="button" tabindex="0" data-device="speaker">
-            <div class="device-top">
-              <span class="device-icon speaker" aria-hidden="true"></span>
-              <span class="signal" aria-hidden="true"></span>
-            </div>
-            <h2>Speaker</h2>
-            <p>6 Devices</p>
-            <div class="device-bottom">
-              <span data-device-state>OFF</span>
-              <span class="switch" aria-hidden="true" data-device-switch></span>
-            </div>
-          </article>
+            <div class="main-notification-list" id="mainNotificationList"></div>
+          </section>
         </section>
 
         <section class="devices device-view personal-view" id="personalView" aria-label="Personal" hidden>
@@ -188,21 +147,6 @@
             <div class="device-bottom">
               <span>OFF</span>
               <span class="switch" aria-hidden="true"></span>
-            </div>
-          </article>
-        </section>
-
-        <section class="devices device-view hacking-view" id="hackingView" aria-label="Hacking" hidden>
-          <article class="device-card hack-card" role="button" tabindex="0" data-action="identity">
-            <div class="device-top">
-              <span class="personal-icon identity" aria-hidden="true"></span>
-              <span class="action-dot" aria-hidden="true"></span>
-            </div>
-            <h2>Identity Detector</h2>
-            <p>Analyze info safely</p>
-            <div class="device-bottom">
-              <span>OPEN</span>
-              <span class="tiny-arrow" aria-hidden="true"></span>
             </div>
           </article>
         </section>
@@ -267,6 +211,19 @@
             </div>
             <h2>SOP</h2>
             <p>Checklist kerja team</p>
+            <div class="device-bottom">
+              <span>OPEN</span>
+              <span class="tiny-arrow" aria-hidden="true"></span>
+            </div>
+          </article>
+
+          <article class="device-card lubuk-card attendance-card" role="button" tabindex="0" data-action="attendance">
+            <div class="device-top">
+              <span class="personal-icon attendance-icon" aria-hidden="true"></span>
+              <span class="action-dot" aria-hidden="true"></span>
+            </div>
+            <h2>Attendance</h2>
+            <p>Punch in/out staff</p>
             <div class="device-bottom">
               <span>OPEN</span>
               <span class="tiny-arrow" aria-hidden="true"></span>
@@ -388,10 +345,9 @@
               <label>Default lokasi cuaca<input name="weatherPlace" type="text" placeholder="Kuala Lumpur"></label>
               <label>Default tab
                 <select name="defaultTab">
-                  <option value="home">Main</option>
+                  <option value="main">Main</option>
                   <option value="love">My Love</option>
                   <option value="personal">Personal</option>
-                  <option value="hacking">Hacking</option>
                   <option value="lubuk">Lubuk IT</option>
                 </select>
               </label>
@@ -460,33 +416,6 @@
           </div>
         </section>
 
-        <section class="app-panel" id="identityPanel" aria-label="Identity detector" hidden>
-          <div class="app-sheet">
-            <div class="sheet-header">
-              <div>
-                <p>Hacking</p>
-                <h2>Identity Detector</h2>
-              </div>
-              <button class="sheet-close" type="button" data-action="closePanel" aria-label="Tutup identity detector"></button>
-            </div>
-            <form class="panel-form" id="identityForm">
-              <label class="wide">Info<input id="identityInput" name="info" type="text" placeholder="Phone, email, username, link, atau info lain"></label>
-              <label>Image<input id="identityImage" name="image" type="file" accept="image/*"></label>
-              <label>Purpose
-                <select id="identityPurpose" name="purpose">
-                  <option value="safety">Safety check</option>
-                  <option value="contact">Contact organizer</option>
-                  <option value="scam">Scam risk</option>
-                </select>
-              </label>
-              <button class="save-bio" type="submit">Analyze</button>
-            </form>
-            <div class="identity-result" id="identityResult">
-              <p>Masukkan info untuk analisis lokal. Tool ini tidak mencari data peribadi orang di internet.</p>
-            </div>
-          </div>
-        </section>
-
         <section class="app-panel" id="targetPanel" aria-label="Target planner" hidden>
           <div class="app-sheet">
             <div class="sheet-header">
@@ -518,23 +447,25 @@
             </div>
 
             <form class="panel-form" id="companyForm">
-              <label>Company name<input name="name" type="text" placeholder="Lubuk IT"></label>
-              <label>No SSM<input name="ssm" type="text" placeholder="202401234567"></label>
-              <label>Phone<input name="phone" type="tel" placeholder="60123456789"></label>
-              <label>Email<input name="email" type="email" placeholder="sales@lubukit.com"></label>
-              <label>Instagram<div class="social-field"><input name="instagram" type="text" placeholder="@lubukit"><button type="button" data-open-social="instagram">IG</button></div></label>
-              <label>Facebook<div class="social-field"><input name="facebook" type="text" placeholder="Lubuk IT"><button type="button" data-open-social="facebook">FB</button></div></label>
-              <label>TikTok<div class="social-field"><input name="tiktok" type="text" placeholder="@lubukit"><button type="button" data-open-social="tiktok">TT</button></div></label>
+              <label>Company name<input name="name" type="text" placeholder="Lubuk IT Enterprise"></label>
+              <label>No SSM<input name="ssm" type="text" placeholder="TR0292390-X"></label>
+              <label>Phone<input name="phone" type="tel" placeholder="01133086136"></label>
+              <label>Email<input name="email" type="email" placeholder="lubukitofficial@gmail.com"></label>
+              <label>Instagram<div class="social-field"><input name="instagram" type="text" placeholder="lubukit"><button type="button" data-open-social="instagram">IG</button></div></label>
+              <label>Facebook<div class="social-field"><input name="facebook" type="text" placeholder="Lubuk it"><button type="button" data-open-social="facebook">FB</button></div></label>
+              <label>TikTok<div class="social-field"><input name="tiktok" type="text" placeholder="LUBUK IT"><button type="button" data-open-social="tiktok">TT</button></div></label>
               <label>LinkedIn<div class="social-field"><input name="linkedin" type="text" placeholder="company/lubuk-it"><button type="button" data-open-social="linkedin">IN</button></div></label>
-              <label>Threads<div class="social-field"><input name="threads" type="text" placeholder="@lubukit"><button type="button" data-open-social="threads">TH</button></div></label>
-              <label>X<div class="social-field"><input name="x" type="text" placeholder="@lubukit"><button type="button" data-open-social="x">X</button></div></label>
+              <label>Threads<div class="social-field"><input name="threads" type="text" placeholder="lubukit"><button type="button" data-open-social="threads">TH</button></div></label>
+              <label>X<div class="social-field"><input name="x" type="text" placeholder="Lubuk IT"><button type="button" data-open-social="x">X</button></div></label>
               <label class="wide">Address<textarea name="address" rows="2" placeholder="Alamat syarikat"></textarea></label>
               <div class="logo-downloads wide">
                 <span>Download logo</span>
-                <button type="button" data-download-logo="color">Logo Color</button>
-                <button type="button" data-download-logo="white">Logo White</button>
-                <button type="button" data-download-logo="black">Logo Black</button>
-                <button type="button" data-download-logo="dp">Logo DP</button>
+                <button type="button" data-download-logo="full-color">Full Color</button>
+                <button type="button" data-download-logo="font-color">Font Color</button>
+                <button type="button" data-download-logo="font-black">Font Black</button>
+                <button type="button" data-download-logo="icon-color">Icon Color</button>
+                <button type="button" data-download-logo="icon-black">Icon Black</button>
+                <button type="button" data-download-logo="logo-dp">Logo DP</button>
               </div>
               <button class="save-bio" id="companySubmit" type="submit">Edit Company Detail</button>
             </form>
@@ -579,7 +510,36 @@
               </div>
               <button class="sheet-close" type="button" data-action="closePanel" aria-label="Tutup project"></button>
             </div>
-            <div class="project-list" id="projectList"></div>
+            <div class="project-report" id="projectReport"></div>
+            <div class="project-tabs" role="tablist" aria-label="Project views">
+              <button class="active" type="button" data-project-tab="projects">Project</button>
+              <button type="button" data-project-tab="tasks">Task</button>
+              <button type="button" data-project-tab="admin">Admin</button>
+            </div>
+            <section class="project-section" id="projectSection">
+              <div class="project-list" id="projectList"></div>
+            </section>
+            <section class="project-section" id="taskSection" hidden>
+              <div class="task-panel-title">
+                <h3>Task Today</h3>
+                <span id="taskTodaySummary">0 task</span>
+              </div>
+              <div class="task-list" id="taskList"></div>
+              <div class="task-panel-title history-title">
+                <h3>History Task</h3>
+                <span id="taskHistorySummary">0 record</span>
+              </div>
+              <div class="task-history" id="taskHistory"></div>
+            </section>
+            <section class="project-section" id="adminSection" hidden>
+              <form class="panel-form task-form" id="taskForm">
+                <label>Staff<select id="taskStaff"></select></label>
+                <label>Date<input id="taskDate" type="date"></label>
+                <label class="wide">Daily task<textarea id="taskTitle" rows="2" placeholder="Task harian staff"></textarea></label>
+                <button class="save-bio" type="submit">Create Daily Task</button>
+              </form>
+              <div class="task-list" id="adminTaskList"></div>
+            </section>
           </div>
         </section>
 
@@ -619,11 +579,13 @@
               <div class="booking-summary wide" id="bookingServiceName">Pilih package</div>
               <div class="booking-packages wide" id="bookingPackageList"></div>
               <label>Client name<input id="bookingClientName" type="text" placeholder="Nama client"></label>
+              <label>Business name<input id="bookingBusinessName" type="text" placeholder="Nama syarikat"></label>
               <label>Phone<input id="bookingClientPhone" type="tel" placeholder="60123456789"></label>
               <label>Email<input id="bookingClientEmail" type="email" placeholder="client@email.com"></label>
               <label>Due date<input id="bookingDueDate" type="date"></label>
+              <label class="wide">Client address<textarea id="bookingClientAddress" rows="2" placeholder="Alamat client"></textarea></label>
               <label class="wide">Note<textarea id="bookingNote" rows="2" placeholder="Detail projek / request client"></textarea></label>
-              <button class="download-button" type="submit">Generate Quotation</button>
+              <button class="download-button" type="submit">Generate Invoice</button>
             </form>
           </div>
         </section>
@@ -637,6 +599,7 @@
               </div>
               <button class="sheet-close" type="button" data-action="closePanel" aria-label="Tutup sales"></button>
             </div>
+            <div class="sales-report-panel" id="salesReportPanel"></div>
             <div class="sales-list" id="salesList"></div>
           </div>
         </section>
@@ -678,6 +641,86 @@
               <button class="save-bio" type="submit">Save Achievement</button>
             </form>
             <div class="ops-list" id="achievementList"></div>
+          </div>
+        </section>
+
+        <section class="app-panel" id="attendancePanel" aria-label="Attendance" hidden>
+          <div class="app-sheet">
+            <div class="sheet-header">
+              <div>
+                <p>Lubuk IT</p>
+                <h2>Attendance</h2>
+              </div>
+              <button class="sheet-close" type="button" data-action="closePanel" aria-label="Tutup attendance"></button>
+            </div>
+            <div class="attendance-toolbar">
+              <button class="attendance-punch-action in" id="attendanceQuickPunch" type="button" data-action="punchIn">Check In</button>
+              <div class="attendance-clockbar">
+                <div><span>🇲🇾 Kuala Lumpur</span><strong id="attendanceClockMy">--:--</strong></div>
+                <div><span>🇮🇩 Jakarta</span><strong id="attendanceClockId">--:--</strong></div>
+              </div>
+            </div>
+            <div class="attendance-report" id="attendanceReport"></div>
+            <div class="attendance-tabs" role="tablist" aria-label="Attendance views">
+              <button class="active" type="button" data-attendance-tab="live">Paparan langsung</button>
+              <button type="button" data-attendance-tab="weekly">Rekod mingguan</button>
+              <button type="button" data-attendance-tab="alerts">Amaran</button>
+              <button type="button" data-attendance-tab="admin">Admin</button>
+            </div>
+            <section class="attendance-section" id="attendanceLiveSection">
+              <div class="attendance-list" id="attendanceList"></div>
+            </section>
+            <section class="attendance-section" id="attendanceWeeklySection" hidden>
+              <div class="attendance-weekly" id="attendanceWeekly"></div>
+            </section>
+            <section class="attendance-section" id="attendanceFormSection" hidden>
+              <form class="panel-form attendance-form" id="attendanceForm" hidden>
+                <input id="attendanceMode" type="hidden">
+                <label>Nama<input id="attendanceName" type="text" placeholder="Nama staff"></label>
+                <label>Lokasi<input id="attendanceLocation" type="text" placeholder="Lokasi semasa"></label>
+                <label class="wide">Masa<input id="attendanceTime" type="text" readonly></label>
+                <div class="attendance-camera wide">
+                  <video id="attendanceVideo" autoplay playsinline muted></video>
+                  <img id="attendancePhoto" alt="Selfie punchcard" hidden>
+                </div>
+                <button class="attendance-snap-button" type="button" data-action="captureAttendance">Snap Selfie</button>
+                <button class="save-bio" type="submit">Submit Punchcard</button>
+                <button class="text-cancel wide" type="button" data-action="cancelAttendance">Cancel</button>
+              </form>
+            </section>
+            <section class="attendance-section" id="attendanceAlertSection" hidden>
+              <div class="attendance-alerts" id="attendanceAlerts"></div>
+            </section>
+            <section class="attendance-section" id="attendanceAdminSection" hidden>
+              <button class="download-button add-staff-button" id="addStaffButton" type="button" data-action="addStaff">Add New Staff</button>
+              <form class="panel-form staff-form" id="staffForm" hidden>
+                <input id="staffId" type="hidden">
+                <label>Gambar<input id="staffPhoto" type="file" accept="image/jpeg,image/png"></label>
+                <label>Nama<input id="staffName" type="text" placeholder="Nama staff"></label>
+                <label>Position<input id="staffPosition" type="text" placeholder="Graphic Designer"></label>
+                <label>No contact<input id="staffContact" type="tel" placeholder="60123456789"></label>
+                <label>Start work<input id="staffStart" type="date"></label>
+                <label>Agreement duration<input id="staffAgreement" type="text" placeholder="Contoh: 6 bulan / 1 tahun"></label>
+                <label>Status<select id="staffStatus"><option value="Permanent">Permanent</option><option value="Remote">Remote</option><option value="Hybrid">Hybrid</option><option value="Intern">Intern</option><option value="Part Time">Part Time</option><option value="Contract">Contract</option><option value="Freelance">Freelance</option><option value="Inactive">Inactive</option></select></label>
+                <label class="wide">Detail / note<textarea id="staffNotes" rows="3" placeholder="Detail staff, emergency, warning rule, agreement note"></textarea></label>
+                <button class="save-bio" type="submit">Save Staff Profile</button>
+                <button class="text-cancel wide" type="button" data-action="cancelStaffEdit">Cancel</button>
+              </form>
+              <div class="staff-list" id="staffList"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="app-panel" id="staffStatisticPanel" aria-label="Staff statistic" hidden>
+          <div class="app-sheet">
+            <div class="sheet-header">
+              <div>
+                <p>Attendance Admin</p>
+                <h2>Staff Statistic</h2>
+              </div>
+              <button class="sheet-close" type="button" data-action="closePanel" aria-label="Tutup staff statistic"></button>
+            </div>
+            <div id="staffStatisticContent"></div>
           </div>
         </section>
 
@@ -770,7 +813,7 @@
     </main>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js" defer></script>
-    <script src="firebase-config.js?v=57" defer></script>
-    <script src="app.js?v=57" defer></script>
+    <script src="firebase-config.js?v=86" defer></script>
+    <script src="app.js?v=86" defer></script>
   </body>
 </html>

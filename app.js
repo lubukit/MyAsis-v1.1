@@ -52,6 +52,27 @@ const bioFields = ["name", "nickname", "birthday", "phone", "anniversary", "loca
 const profileFields = ["name", "role", "phone", "email", "address"];
 const settingsFields = ["homeName", "weatherPlace", "defaultTab", "tempUnit", "birthdayNotify", "salaryDay", "salaryTime", "bankName", "bankAccount", "bankHolder"];
 const companyFields = ["name", "ssm", "phone", "email", "instagram", "facebook", "tiktok", "linkedin", "threads", "x", "address"];
+const defaultCompany = {
+  name: "Lubuk IT Enterprise",
+  ssm: "TR0292390-X",
+  phone: "01133086136",
+  email: "lubukitofficial@gmail.com",
+  instagram: "https://www.instagram.com/lubukit/",
+  facebook: "https://www.facebook.com/profile.php?id=100093685362450",
+  tiktok: "https://www.tiktok.com/@lubukit",
+  linkedin: "-",
+  threads: "https://www.threads.com/@lubukit",
+  x: "https://x.com/ItLubuk81543",
+  address: "-"
+};
+const companyLogoFiles = {
+  "full-color": "assets/brand/lubukit-full-color.png",
+  "font-color": "assets/brand/lubukit-font-color.png",
+  "font-black": "assets/brand/lubukit-font-black.png",
+  "icon-color": "assets/brand/lubukit-icon-color.png",
+  "icon-black": "assets/brand/lubukit-icon-black.png",
+  "logo-dp": "assets/brand/lubukit-logo-dp.jpg"
+};
 let musicMode = "music";
 let selectedCalendarDate = new Date();
 let quotationItems = [];
@@ -63,6 +84,9 @@ let firestoreDb = null;
 let priceHoldTimer = null;
 let priceHoldTriggered = false;
 let installPromptEvent = null;
+let attendanceStream = null;
+let attendancePhotoData = "";
+let staffPhotoData = "";
 const quotes = [
   "Small steps, strong home.",
   "Control the day before it controls you.",
@@ -249,8 +273,10 @@ function setMainGreeting() {
 }
 
 function setMainQuote() {
+  const quote = document.getElementById("mainQuote");
+  if (!quote) return;
   const dayIndex = Math.floor(Date.now() / 86400000) % quotes.length;
-  $("mainQuote").textContent = quotes[dayIndex];
+  quote.textContent = quotes[dayIndex];
 }
 
 function updateWeatherIcon(condition) {
@@ -260,11 +286,11 @@ function updateWeatherIcon(condition) {
 }
 
 function activeViewName() {
-  return document.querySelector(".tab.active")?.dataset.tab || "home";
+  return document.querySelector(".tab.active")?.dataset.tab || "main";
 }
 
 function canRenderWeather() {
-  return !["personal", "lubuk"].includes(activeViewName());
+  return !["main", "personal", "lubuk"].includes(activeViewName());
 }
 
 function setMetricLabels(labels) {
@@ -390,7 +416,7 @@ function getSettings() {
   return readJson("settings", {
     homeName: "Smart Home",
     weatherPlace: "Kuala Lumpur",
-    defaultTab: "home",
+    defaultTab: "main",
     tempUnit: "c",
     birthdayNotify: false,
     salaryDay: "25",
@@ -812,29 +838,125 @@ function checkCalendarNotifications() {
   new Notification("Calendar Note", { body: notes[key].note, icon: "./icon.svg" });
 }
 
+function updateMainClock() {
+  if (!$("mainClockTime")) return;
+  const now = new Date();
+  $("mainClockTime").textContent = new Intl.DateTimeFormat("en-MY", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  }).format(now);
+  $("mainClockDate").textContent = new Intl.DateTimeFormat("en-MY", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  }).format(now);
+  $("mainClockGreeting").textContent = $("timeGreeting")?.textContent || "Smart Dashboard";
+}
+
+function addMainNotice(items, type, title, detail) {
+  items.push({ type, title, detail });
+}
+
+function getDashboardNotifications() {
+  const items = [];
+  const now = new Date();
+  const todayKey = dateKey(now);
+  const notes = getCalendarNotes();
+
+  if (notes[todayKey]?.note) {
+    addMainNotice(items, "Calendar", "Calendar note hari ini", notes[todayKey].note);
+  }
+
+  const bio = getBio();
+  const birthday = getNextBirthday(bio.birthday);
+  if (birthday) {
+    const days = Math.ceil((birthday - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+    if (days >= 0 && days <= 7) {
+      addMainNotice(items, "My Love", days === 0 ? "Birthday hari ini" : `Birthday dalam ${days} hari`, bio.nickname || bio.name || "My Love");
+    }
+  }
+
+  getTargets().forEach((target) => {
+    const amount = Number(target.amount || 0);
+    const saved = Number(target.saved || 0);
+    const deadline = target.deadline ? parseDateKey(target.deadline) : null;
+    const days = deadline ? Math.ceil((deadline - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000) : null;
+    if (amount && saved < amount && (target.notify || (days !== null && days <= 7))) {
+      const balance = Math.max(amount - saved, 0);
+      addMainNotice(items, "Target", target.name || "Target simpanan", `Baki ${formatMoney(balance)}${days !== null ? `, ${Math.max(days, 0)} hari lagi` : ""}`);
+    }
+  });
+
+  getSales().forEach((sale) => {
+    if (!sale.due || ["finish", "cancel"].includes(sale.status || "in-project")) return;
+    const due = new Date(sale.due);
+    const days = Math.ceil((due - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+    if (days >= 0 && days <= 3) {
+      addMainNotice(items, "Project", sale.customer || "Client", `Due ${days === 0 ? "hari ini" : `${days} hari lagi`}`);
+    }
+  });
+
+  const todayTaskKey = taskDateKey();
+  const pendingTasks = getTasks().filter((task) => (task.date || todayTaskKey) === todayTaskKey && task.status !== "done");
+  if (pendingTasks.length) {
+    addMainNotice(items, "Task", "Daily task belum siap", `${pendingTasks.length} task pending hari ini`);
+  }
+
+  const staff = activeStaffProfiles();
+  if (staff.length) {
+    const checkedIn = new Set(todaysAttendance().filter((record) => record.mode === "in").map((record) => record.name));
+    const missing = staff.filter((profile) => profile.name && !checkedIn.has(profile.name));
+    if (missing.length) {
+      addMainNotice(items, "Attendance", "Staff belum punch in", `${missing.length}/${staff.length} staff belum ada rekod masuk`);
+    }
+  }
+
+  return items.slice(0, 10);
+}
+
+function renderMainDashboard() {
+  updateMainClock();
+  const notices = getDashboardNotifications();
+  $("mainNotificationCount").textContent = String(notices.length);
+  $("mainNotificationList").innerHTML = notices.length ? notices.map((notice) => `
+    <article class="main-notification-card">
+      <span>${escapeHtml(notice.type)}</span>
+      <div>
+        <h3>${escapeHtml(notice.title)}</h3>
+        <p>${escapeHtml(notice.detail || "")}</p>
+      </div>
+    </article>
+  `).join("") : "<div class=\"main-empty-notice\"><p>Tiada notification aktif sekarang.</p></div>";
+}
+
 function switchView(view, activeTab) {
+  const safeView = ["main", "love", "personal", "lubuk"].includes(view) ? view : "main";
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.classList.toggle("active", tab === activeTab);
   });
-  $("homeView").hidden = view !== "home";
-  $("loveView").hidden = view !== "love";
-  $("personalView").hidden = view !== "personal";
-  $("hackingView").hidden = view !== "hacking";
-  $("lubukView").hidden = view !== "lubuk";
-  document.querySelector(".weather-card").hidden = view === "personal";
-  $("calendarCard").hidden = view !== "personal";
-  if (view === "personal") renderCalendar();
-  if (view === "lubuk") renderSaleSummary();
-  if (view !== "personal" && view !== "lubuk") loadWeather();
+  $("mainView").hidden = safeView !== "main";
+  $("loveView").hidden = safeView !== "love";
+  $("personalView").hidden = safeView !== "personal";
+  $("lubukView").hidden = safeView !== "lubuk";
+  document.querySelector(".weather-card").hidden = ["main", "personal"].includes(safeView);
+  $("calendarCard").hidden = safeView !== "personal";
+  if (safeView === "main") renderMainDashboard();
+  if (safeView === "personal") renderCalendar();
+  if (safeView === "lubuk") renderSaleSummary();
+  if (safeView === "love") loadWeather();
 }
 
 function activateTab(view) {
   const tab = [...document.querySelectorAll(".tab")].find((item) => item.dataset.tab === view) || document.querySelector(".tab");
-  switchView(tab.dataset.tab || "home", tab);
+  switchView(tab.dataset.tab || "main", tab);
 }
 
 function closeAllPanels() {
-  ["usagePanel", "settingsPanel", "profilePanel", "bioPanel", "musicPanel", "calendarNotePanel", "identityPanel", "targetPanel", "companyPanel", "pricePanel", "projectPanel", "bookingPanel", "salesPanel", "projectChatPanel", "sopPanel", "achievementPanel"].forEach((id) => {
+  stopAttendanceCamera();
+  ["usagePanel", "settingsPanel", "profilePanel", "bioPanel", "musicPanel", "calendarNotePanel", "targetPanel", "companyPanel", "pricePanel", "projectPanel", "bookingPanel", "salesPanel", "projectChatPanel", "sopPanel", "achievementPanel", "attendancePanel", "staffStatisticPanel"].forEach((id) => {
     if ($(id)) $(id).hidden = true;
   });
   document.body.classList.remove("client-chat-mode");
@@ -863,7 +985,7 @@ function handleNav(nav) {
   setNavActive(nav);
   if (nav === "home") {
     closeAllPanels();
-    activateTab(getSettings().defaultTab || "home");
+    activateTab("main");
   }
   if (nav === "usage") openAppPanel("usagePanel");
   if (nav === "settings") openAppPanel("settingsPanel");
@@ -878,7 +1000,7 @@ function resetAppData() {
   loadSettingsForm();
   refreshLoveLabels();
   refreshDeviceCards();
-  activateTab("home");
+  activateTab("main");
   closeAllPanels();
 }
 
@@ -891,10 +1013,6 @@ async function downloadAppNow() {
   }
 
   window.alert("Untuk install app: buka website ini di Safari/Chrome, tekan Share/Menu, kemudian pilih Add to Home Screen atau Install App.");
-}
-
-function openIdentityPanel() {
-  openAppPanel("identityPanel");
 }
 
 function getTargets() {
@@ -1033,19 +1151,14 @@ function checkSalaryNotifications() {
 }
 
 function getCompany() {
-  return readJson("company", {
-    name: "Lubuk IT",
-    ssm: "",
-    phone: "",
-    email: "",
-    instagram: "",
-    facebook: "",
-    tiktok: "",
-    linkedin: "",
-    threads: "",
-    x: "",
-    address: ""
-  });
+  const company = readJson("company", defaultCompany);
+  if (storage.getItem("companyDefaultsV3") !== "yes") {
+    const patched = { ...company, ...defaultCompany };
+    storage.setItem("companyDefaultsV3", "yes");
+    setCompany(patched);
+    return patched;
+  }
+  return company;
 }
 
 function setCompany(company) {
@@ -1122,7 +1235,13 @@ function openPricePanel() {
 
 function openProjectPanel() {
   openAppPanel("projectPanel");
+  switchProjectTab("projects");
+  setDefaultTaskDate();
+  renderStaffOptions();
   renderProjects();
+  renderTasks();
+  renderAdminTasks();
+  renderProjectReport();
 }
 
 function openSalesPanel() {
@@ -1252,6 +1371,475 @@ function deleteAchievement(id) {
   renderAchievements();
 }
 
+function getAttendanceRecords() {
+  try {
+    return JSON.parse(storage.getItem("attendanceRecords") || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function setAttendanceRecords(records) {
+  storage.setItem("attendanceRecords", JSON.stringify(records));
+}
+
+function getStaffProfiles() {
+  try {
+    return JSON.parse(storage.getItem("staffProfiles") || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function setStaffProfiles(staff) {
+  storage.setItem("staffProfiles", JSON.stringify(staff));
+}
+
+function activeStaffProfiles() {
+  return getStaffProfiles().filter((staff) => (staff.status || "Permanent") !== "Inactive");
+}
+
+function staffInitials(name = "Staff") {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "S";
+}
+
+function compressStaffPhoto(file) {
+  return new Promise((resolve, reject) => {
+    if (!["image/jpeg", "image/png"].includes(file.type)) {
+      reject(new Error("Format gambar mesti JPEG atau PNG."));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Gambar tidak boleh dibaca."));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error("Gambar tidak valid."));
+      image.onload = () => {
+        const maxSize = 900;
+        const scale = Math.min(maxSize / image.width, maxSize / image.height, 1);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        const context = canvas.getContext("2d");
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      image.src = String(reader.result || "");
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderStaffOptions() {
+  if (!$("taskStaff")) return;
+  const staff = activeStaffProfiles();
+  $("taskStaff").innerHTML = staff.length
+    ? staff.map((item) => `<option value="${escapeHtml(item.name)}">${escapeHtml(item.name)}${item.position ? ` - ${escapeHtml(item.position)}` : ""}</option>`).join("")
+    : "<option value=\"\">Add staff in Attendance Admin</option>";
+}
+
+function resetStaffForm() {
+  staffPhotoData = "";
+  $("staffForm").reset();
+  $("staffId").value = "";
+  $("staffAgreement").value = "";
+  $("staffStatus").value = "Permanent";
+  $("staffForm").hidden = true;
+  $("addStaffButton").hidden = false;
+}
+
+function openStaffForm() {
+  resetStaffForm();
+  $("staffForm").hidden = false;
+  $("addStaffButton").hidden = true;
+  $("staffName").focus();
+}
+
+function renderStaffProfiles() {
+  const staff = getStaffProfiles();
+  $("staffList").innerHTML = staff.length ? staff.map((item) => `
+    <article class="staff-card">
+      <div class="staff-media">
+        ${item.photo ? `<img src="${item.photo}" alt="${escapeHtml(item.name)}">` : `<div class="staff-avatar">${escapeHtml(staffInitials(item.name))}</div>`}
+      </div>
+      <div class="staff-card-body">
+        <h3>${escapeHtml(item.name || "Staff")}</h3>
+        <p>${escapeHtml(item.position || "No position")} • ${escapeHtml(item.status || "Active")}</p>
+        <span>Contact: ${escapeHtml(item.contact || "-")}</span>
+        <span>Start: ${escapeHtml(item.start || "-")} • Agreement: ${escapeHtml(item.agreement || "-")}</span>
+        ${item.notes ? `<small>${escapeHtml(item.notes)}</small>` : ""}
+        <div class="staff-actions">
+          <button type="button" data-staff-stat="${item.id}">Statistic</button>
+          <button type="button" data-edit-staff="${item.id}">Edit</button>
+          <button type="button" data-delete-staff="${item.id}">Delete</button>
+        </div>
+      </div>
+    </article>
+  `).join("") : "<div class=\"identity-result\"><p>Belum ada profile staff. Add staff di form atas.</p></div>";
+  renderStaffOptions();
+}
+
+function saveStaffProfile(event) {
+  event.preventDefault();
+  const id = $("staffId").value || String(Date.now());
+  const existing = getStaffProfiles().find((item) => String(item.id) === String(id));
+  const profile = {
+    id,
+    photo: staffPhotoData || existing?.photo || "",
+    name: $("staffName").value.trim(),
+    position: $("staffPosition").value.trim(),
+    contact: $("staffContact").value.trim(),
+    start: $("staffStart").value,
+    agreement: $("staffAgreement").value,
+    status: $("staffStatus").value,
+    notes: $("staffNotes").value.trim()
+  };
+  if (!profile.name) {
+    window.alert("Masukkan nama staff.");
+    return;
+  }
+  const staff = getStaffProfiles();
+  const index = staff.findIndex((item) => String(item.id) === String(id));
+  if (index >= 0) staff[index] = profile;
+  else staff.unshift(profile);
+  setStaffProfiles(staff);
+  resetStaffForm();
+  renderStaffProfiles();
+  renderAttendance();
+}
+
+function editStaffProfile(id) {
+  const staff = getStaffProfiles().find((item) => String(item.id) === String(id));
+  if (!staff) return;
+  $("staffForm").hidden = false;
+  $("addStaffButton").hidden = true;
+  staffPhotoData = staff.photo || "";
+  $("staffId").value = staff.id;
+  $("staffName").value = staff.name || "";
+  $("staffPosition").value = staff.position || "";
+  $("staffContact").value = staff.contact || "";
+  $("staffStart").value = staff.start || "";
+  $("staffAgreement").value = staff.agreement || "";
+  $("staffStatus").value = staff.status || "Permanent";
+  $("staffNotes").value = staff.notes || "";
+}
+
+function deleteStaffProfile(id) {
+  if (!window.confirm("Delete profile staff ini?")) return;
+  setStaffProfiles(getStaffProfiles().filter((item) => String(item.id) !== String(id)));
+  resetStaffForm();
+  renderStaffProfiles();
+  renderAttendance();
+}
+
+function openStaffStatistic(id) {
+  const staff = getStaffProfiles().find((item) => String(item.id) === String(id));
+  if (!staff) return;
+  const attendance = getAttendanceRecords().filter((record) => record.name === staff.name);
+  const punchIn = attendance.filter((record) => record.mode === "in");
+  const punchOut = attendance.filter((record) => record.mode === "out");
+  const late = punchIn.filter((record) => {
+    const date = new Date(record.time);
+    return date.getHours() > 9 || (date.getHours() === 9 && date.getMinutes() > 15);
+  });
+  const tasks = getTasks().filter((task) => task.staff === staff.name);
+  const doneTasks = tasks.filter((task) => task.status === "done");
+  const achievements = getAchievements().filter((item) => item.staff === staff.name);
+  const points = achievements.reduce((sum, item) => sum + Number(item.point || 0), 0);
+  const recentAttendance = attendance.slice(0, 8);
+  const taskRate = tasks.length ? Math.round((doneTasks.length / tasks.length) * 100) : 0;
+  openAppPanel("staffStatisticPanel");
+  $("staffStatisticContent").innerHTML = `
+    <section class="staff-stat-hero">
+      ${staff.photo ? `<img src="${staff.photo}" alt="${escapeHtml(staff.name)}">` : `<div class="staff-avatar">${escapeHtml(staffInitials(staff.name))}</div>`}
+      <div>
+        <h3>${escapeHtml(staff.name || "Staff")}</h3>
+        <p>${escapeHtml(staff.position || "No position")} • ${escapeHtml(staff.status || "Permanent")}</p>
+      </div>
+    </section>
+    <section class="staff-stat-grid">
+      <div><strong>${attendance.length}</strong><span>Attendance Record</span></div>
+      <div><strong>${punchIn.length}</strong><span>Punch In</span></div>
+      <div><strong>${punchOut.length}</strong><span>Punch Out</span></div>
+      <div><strong>${late.length}</strong><span>Late</span></div>
+      <div><strong>${doneTasks.length}/${tasks.length}</strong><span>Task Done</span></div>
+      <div><strong>${taskRate}%</strong><span>KPI Task</span></div>
+      <div><strong>${points}</strong><span>Achievement Point</span></div>
+      <div><strong>${achievements.length}</strong><span>Achievement</span></div>
+    </section>
+    <section class="staff-stat-detail">
+      <h3>Staff Info</h3>
+      <p><b>Contact:</b> ${escapeHtml(staff.contact || "-")}</p>
+      <p><b>Start Work:</b> ${escapeHtml(staff.start || "-")}</p>
+      <p><b>Agreement:</b> ${escapeHtml(staff.agreement || "-")}</p>
+      <p><b>Status:</b> ${escapeHtml(staff.status || "-")}</p>
+      <p><b>Notes:</b> ${escapeHtml(staff.notes || "-")}</p>
+    </section>
+    <section class="staff-stat-detail">
+      <h3>Recent Attendance</h3>
+      ${recentAttendance.length ? recentAttendance.map((record) => `<p><b>${record.mode === "in" ? "IN" : "OUT"}:</b> ${escapeHtml(formatAttendanceTime(record.time))} • ${escapeHtml(record.location || "-")}</p>`).join("") : "<p>Belum ada rekod attendance.</p>"}
+    </section>
+    <section class="staff-stat-detail">
+      <h3>Target & KPI</h3>
+      <p><b>Task completion:</b> ${doneTasks.length}/${tasks.length} task (${taskRate}%)</p>
+      <p><b>Late record:</b> ${late.length}</p>
+      <p><b>Achievement points:</b> ${points}</p>
+    </section>
+  `;
+}
+
+function attendanceDateKey(value = new Date()) {
+  return new Date(value).toISOString().slice(0, 10);
+}
+
+function formatAttendanceTime(value = new Date()) {
+  return new Intl.DateTimeFormat("en-MY", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
+
+function openAttendancePanel() {
+  openAppPanel("attendancePanel");
+  resetAttendanceForm();
+  switchAttendanceTab("live");
+  updateAttendanceClocks();
+  renderStaffProfiles();
+  renderAttendance();
+}
+
+function todaysAttendance() {
+  const today = attendanceDateKey();
+  return getAttendanceRecords().filter((record) => attendanceDateKey(record.time) === today);
+}
+
+function renderAttendance() {
+  const records = getAttendanceRecords();
+  const today = todaysAttendance();
+  const punchIn = today.filter((record) => record.mode === "in").length;
+  const punchOut = today.filter((record) => record.mode === "out").length;
+  const names = new Set(today.map((record) => record.name).filter(Boolean));
+  const staffTotal = activeStaffProfiles().length || names.size;
+  $("attendanceReport").innerHTML = `
+    <section class="attendance-summary">
+      <div><span>Staff today</span><strong>${names.size}/${staffTotal}</strong></div>
+      <div><span>Punch in</span><strong>${punchIn}</strong></div>
+      <div><span>Punch out</span><strong>${punchOut}</strong></div>
+      <div><span>Total record</span><strong>${records.length}</strong></div>
+    </section>
+  `;
+  renderAttendancePunchButton();
+  renderAttendanceWeekly(records);
+  renderAttendanceAlerts(records);
+  $("attendanceList").innerHTML = records.length ? records.slice(0, 20).map((record) => `
+    <article class="attendance-record">
+      ${record.photo ? `<img src="${record.photo}" alt="Selfie ${escapeHtml(record.name)}">` : "<div class=\"attendance-avatar\">?</div>"}
+      <div>
+        <h3>${escapeHtml(record.name)}</h3>
+        <p>${record.mode === "in" ? "Punch In" : "Punch Out"} • ${escapeHtml(formatAttendanceTime(record.time))}</p>
+        <span>${escapeHtml(record.location || "Lokasi tidak diset")}</span>
+      </div>
+      <strong>${record.mode === "in" ? "IN" : "OUT"}</strong>
+    </article>
+  `).join("") : "<div class=\"identity-result\"><p>Belum ada rekod attendance. Tekan Punch In atau Punch Out untuk mula.</p></div>";
+}
+
+function currentAttendanceName() {
+  return getProfile().name || "Staff";
+}
+
+function hasOpenAttendancePunch(name = currentAttendanceName()) {
+  const today = todaysAttendance().filter((record) => record.name === name);
+  const last = today[0];
+  return Boolean(last && last.mode === "in");
+}
+
+function renderAttendancePunchButton() {
+  const button = $("attendanceQuickPunch");
+  const isCheckedIn = hasOpenAttendancePunch();
+  button.textContent = isCheckedIn ? "Check Out" : "Check In";
+  button.dataset.action = isCheckedIn ? "punchOut" : "punchIn";
+  button.classList.toggle("out", isCheckedIn);
+  button.classList.toggle("in", !isCheckedIn);
+}
+
+function updateAttendanceClocks() {
+  if (!$("attendanceClockMy") || $("attendancePanel").hidden) return;
+  const options = { hour: "2-digit", minute: "2-digit", hour12: true };
+  $("attendanceClockMy").textContent = new Intl.DateTimeFormat("en-MY", { ...options, timeZone: "Asia/Kuala_Lumpur" }).format(new Date());
+  $("attendanceClockId").textContent = new Intl.DateTimeFormat("en-MY", { ...options, timeZone: "Asia/Jakarta" }).format(new Date());
+}
+
+function switchAttendanceTab(tabName) {
+  document.querySelectorAll("[data-attendance-tab]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.attendanceTab === tabName);
+  });
+  $("attendanceLiveSection").hidden = tabName !== "live";
+  $("attendanceWeeklySection").hidden = tabName !== "weekly";
+  $("attendanceFormSection").hidden = tabName !== "form";
+  $("attendanceAlertSection").hidden = tabName !== "alerts";
+  $("attendanceAdminSection").hidden = tabName !== "admin";
+}
+
+function attendanceWeekDays() {
+  const today = new Date();
+  const monday = new Date(today);
+  const day = monday.getDay() || 7;
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - day + 1);
+  return Array.from({ length: 5 }, (_, index) => {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + index);
+    return date;
+  });
+}
+
+function attendanceStatusFor(records, name, date) {
+  const dayRecords = records.filter((record) => record.name === name && attendanceDateKey(record.time) === attendanceDateKey(date));
+  if (!dayRecords.length) return "-";
+  const inRecord = dayRecords.find((record) => record.mode === "in");
+  if (!inRecord) return "A";
+  const hour = new Date(inRecord.time).getHours();
+  const minute = new Date(inRecord.time).getMinutes();
+  if (hour > 9 || (hour === 9 && minute > 15)) return "L";
+  return "H";
+}
+
+function renderAttendanceWeekly(records) {
+  const profileNames = getStaffProfiles().map((staff) => staff.name).filter(Boolean);
+  const names = [...new Set([...profileNames, ...records.map((record) => record.name).filter(Boolean)])];
+  const days = attendanceWeekDays();
+  $("attendanceWeekly").innerHTML = names.length ? `
+    <div class="weekly-head">
+      <span>Staff</span>
+      ${days.map((day) => `<span>${new Intl.DateTimeFormat("ms-MY", { weekday: "short" }).format(day)}</span>`).join("")}
+    </div>
+    ${names.map((name) => `
+      <div class="weekly-row">
+        <strong>${escapeHtml(name)}</strong>
+        ${days.map((day) => {
+          const status = attendanceStatusFor(records, name, day);
+          return `<span class="status-${status.toLowerCase()}">${status}</span>`;
+        }).join("")}
+      </div>
+    `).join("")}
+    <div class="weekly-legend"><span class="status-h">H</span> Hadir <span class="status-l">L</span> Lambat <span class="status-a">A</span> Absen <span class="status--">-</span> Tiada rekod</div>
+  ` : "<div class=\"identity-result\"><p>Belum ada rekod mingguan.</p></div>";
+}
+
+function renderAttendanceAlerts(records) {
+  const today = attendanceDateKey();
+  const todayRecords = records.filter((record) => attendanceDateKey(record.time) === today);
+  const late = todayRecords.filter((record) => {
+    if (record.mode !== "in") return false;
+    const date = new Date(record.time);
+    return date.getHours() > 9 || (date.getHours() === 9 && date.getMinutes() > 15);
+  });
+  const openPunch = todayRecords.filter((record) => record.mode === "in" && !todayRecords.some((item) => item.name === record.name && item.mode === "out"));
+  const absentProfiles = activeStaffProfiles().filter((staff) => !todayRecords.some((record) => record.name === staff.name));
+  const alerts = [
+    ...late.map((record) => ({ type: "warning", text: `${record.name} check-in lambat pada ${formatAttendanceTime(record.time)}` })),
+    ...openPunch.map((record) => ({ type: "danger", text: `${record.name} belum punch out hari ini` })),
+    ...absentProfiles.map((staff) => ({ type: "danger", text: `${staff.name} belum check-in hari ini` }))
+  ];
+  $("attendanceAlerts").innerHTML = alerts.length ? alerts.map((alert) => `
+    <article class="attendance-alert ${alert.type}">
+      <strong>${alert.type === "danger" ? "!" : "•"}</strong>
+      <span>${escapeHtml(alert.text)}</span>
+    </article>
+  `).join("") : "<div class=\"identity-result\"><p>Tiada amaran aktif hari ini.</p></div>";
+}
+
+function stopAttendanceCamera() {
+  if (!attendanceStream) return;
+  attendanceStream.getTracks().forEach((track) => track.stop());
+  attendanceStream = null;
+}
+
+async function startAttendanceCamera() {
+  stopAttendanceCamera();
+  const video = $("attendanceVideo");
+  if (!navigator.mediaDevices?.getUserMedia) {
+    window.alert("Camera tidak disokong pada browser ini.");
+    return;
+  }
+  try {
+    attendanceStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+    video.srcObject = attendanceStream;
+    await video.play().catch(() => {});
+  } catch {
+    window.alert("Tak dapat buka camera. Benarkan permission camera untuk snap selfie.");
+  }
+}
+
+async function resolveAttendanceLocation() {
+  if (!("geolocation" in navigator)) return getSettings().weatherPlace || "Kuala Lumpur";
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve(`${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)}`),
+      () => resolve(getSettings().weatherPlace || "Kuala Lumpur"),
+      { enableHighAccuracy: true, timeout: 7000, maximumAge: 60000 }
+    );
+  });
+}
+
+async function startPunch(mode) {
+  switchAttendanceTab("form");
+  attendancePhotoData = "";
+  $("attendanceForm").hidden = false;
+  $("attendanceMode").value = mode;
+  $("attendanceName").value = currentAttendanceName();
+  $("attendanceTime").value = formatAttendanceTime();
+  $("attendanceLocation").value = "Detecting location...";
+  $("attendancePhoto").hidden = true;
+  $("attendancePhoto").removeAttribute("src");
+  $("attendanceLocation").value = await resolveAttendanceLocation();
+  startAttendanceCamera();
+}
+
+function captureAttendancePhoto() {
+  const video = $("attendanceVideo");
+  if (!video.videoWidth) {
+    window.alert("Camera belum ready.");
+    return;
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d").drawImage(video, 0, 0);
+  attendancePhotoData = canvas.toDataURL("image/jpeg", 0.78);
+  $("attendancePhoto").src = attendancePhotoData;
+  $("attendancePhoto").hidden = false;
+}
+
+function resetAttendanceForm() {
+  attendancePhotoData = "";
+  $("attendanceForm").reset();
+  $("attendanceForm").hidden = true;
+  $("attendancePhoto").hidden = true;
+  $("attendancePhoto").removeAttribute("src");
+  stopAttendanceCamera();
+}
+
+function saveAttendance(event) {
+  event.preventDefault();
+  if (!attendancePhotoData) {
+    window.alert("Snap selfie dulu untuk confirm punchcard.");
+    return;
+  }
+  const record = {
+    id: Date.now(),
+    mode: $("attendanceMode").value || "in",
+    name: $("attendanceName").value.trim() || "Staff",
+    location: $("attendanceLocation").value.trim(),
+    time: new Date().toISOString(),
+    photo: attendancePhotoData
+  };
+  setAttendanceRecords([record, ...getAttendanceRecords()]);
+  resetAttendanceForm();
+  renderAttendance();
+  switchAttendanceTab("live");
+  window.alert(record.mode === "in" ? "Punch In disimpan." : "Punch Out disimpan.");
+}
+
 function loadCompanyForm() {
   const company = getCompany();
   const form = $("companyForm");
@@ -1313,15 +1901,15 @@ function copyCompanyField(target) {
 
 function getSocialUrl(type, value) {
   const clean = String(value || "").trim();
-  if (!clean) return "";
+  if (!clean || clean === "-") return "";
   if (/^https?:\/\//i.test(clean)) return clean;
   const handle = clean.replace(/^@/, "");
   const urls = {
-    instagram: `https://instagram.com/${handle}`,
+    instagram: `https://www.instagram.com/${handle}/`,
     facebook: `https://facebook.com/${handle}`,
     tiktok: `https://tiktok.com/@${handle}`,
     linkedin: clean.includes("/") ? `https://linkedin.com/${clean}` : `https://linkedin.com/in/${handle}`,
-    threads: `https://threads.net/@${handle}`,
+    threads: `https://www.threads.com/@${handle}`,
     x: `https://x.com/${handle}`
   };
   return urls[type] || "";
@@ -1337,24 +1925,30 @@ function openSocialProfile(type) {
   window.open(url, "_blank", "noopener");
 }
 
-function downloadCompanyLogo(type) {
-  const company = getCompany();
-  const name = company.name || "Lubuk IT";
-  const palette = {
-    color: { bg: "#11101f", fg: "#8afbf1" },
-    white: { bg: "#11101f", fg: "#ffffff" },
-    black: { bg: "#ffffff", fg: "#111111" },
-    dp: { bg: "#8afbf1", fg: "#11101f" }
-  }[type] || { bg: "#11101f", fg: "#8afbf1" };
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200"><rect width="1200" height="1200" rx="${type === "dp" ? 260 : 80}" fill="${palette.bg}"/><text x="600" y="590" text-anchor="middle" font-family="Arial, sans-serif" font-size="130" font-weight="800" fill="${palette.fg}">${escapeHtml(name)}</text><text x="600" y="700" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" fill="${palette.fg}" opacity=".72">${escapeHtml(company.ssm || "Lubuk IT Enterprise")}</text></svg>`;
-  const blob = new Blob([svg], { type: "image/svg+xml" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-logo-${type}.svg`;
-  document.body.appendChild(link);
-  link.click();
-  URL.revokeObjectURL(link.href);
-  link.remove();
+async function downloadCompanyLogo(type) {
+  const file = companyLogoFiles[type];
+  if (!file) return;
+  const filename = file.split("/").pop();
+  try {
+    const response = await fetch(file);
+    if (!response.ok) throw new Error("Logo download failed");
+    const blob = await response.blob();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    URL.revokeObjectURL(link.href);
+    link.remove();
+  } catch {
+    const link = document.createElement("a");
+    link.href = file;
+    link.download = filename;
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
 }
 
 function setPriceBuilderVisible(visible) {
@@ -1507,26 +2101,93 @@ function isSameWeek(date, now) {
 
 function renderSaleSummary() {
   if (!$("condition")) return;
-  setMetricLabels(["Daily", "Weekly", "Monthly", "Active"]);
+  setMetricLabels(["", "", ""]);
   document.querySelector(".weather-card").classList.add("sale-summary-card");
   $("weatherIcon").classList.add("sale-mark");
+  const sales = getSales();
+  const totalSale = sales.reduce((sum, sale) => sum + Number(sale.total || 0), 0);
+  const totalClient = new Set(sales.map((sale) => (sale.customer || "").trim()).filter(Boolean)).size || sales.length;
+  const targetClient = Number(storage.getItem("targetClient") || 100);
+  const targetSale = Number(storage.getItem("targetSale") || 10000);
+  const staffToday = new Set(todaysAttendance().map((record) => record.name).filter(Boolean)).size;
+  const knownStaff = new Set([
+    ...getAttendanceRecords().map((record) => record.name).filter(Boolean),
+    ...getAchievements().map((item) => item.staff).filter(Boolean)
+  ]);
+  const totalStaff = Number(storage.getItem("totalStaff") || knownStaff.size || 8);
+  const compactMoney = (value) => Number(value) >= 1000 ? `RM${Math.round(Number(value) / 1000)}K` : formatMoney(value).replace("RM ", "RM");
+  const ratioMetric = (current, target, label) => `<span class="metric-ratio"><span class="metric-current">${current}</span><span class="metric-target">/${target} ${label}</span></span>`;
+
+  $("condition").textContent = "Lubuk IT Report";
+  $("place").textContent = "";
+  $("temperature").textContent = "";
+  $("feelsLike").innerHTML = ratioMetric(totalClient, targetClient, "Total Client");
+  $("humidity").innerHTML = ratioMetric(formatMoney(totalSale).replace("RM ", "RM"), compactMoney(targetSale), "Total Sale");
+  $("wind").innerHTML = ratioMetric(staffToday, totalStaff, "Staff Work");
+  $("pressure").textContent = "";
+}
+
+function getSaleReportStats() {
   const sales = getSales();
   const now = new Date();
   const totalFor = (filterFn) => sales
     .filter((sale) => filterFn(new Date(sale.createdAt || sale.id || Date.now())))
     .reduce((sum, sale) => sum + Number(sale.total || 0), 0);
-  const daily = totalFor((date) => isSameDay(date, now));
-  const weekly = totalFor((date) => isSameWeek(date, now));
-  const monthly = totalFor((date) => date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth());
-  const activeProjects = sales.filter((sale) => !["finish", "cancel"].includes(sale.status || "in-project")).length;
+  const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.total || 0), 0);
+  const active = sales.filter((sale) => !["finish", "cancel"].includes(sale.status || "in-project")).length;
+  const finish = sales.filter((sale) => (sale.status || "in-project") === "finish").length;
+  const cancel = sales.filter((sale) => (sale.status || "in-project") === "cancel").length;
+  const due = sales.filter((sale) => (sale.status || "in-project") === "due-date").length;
+  return {
+    sales,
+    totalRevenue,
+    daily: totalFor((date) => isSameDay(date, now)),
+    weekly: totalFor((date) => isSameWeek(date, now)),
+    monthly: totalFor((date) => date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth()),
+    active,
+    finish,
+    cancel,
+    due,
+    average: sales.length ? totalRevenue / sales.length : 0
+  };
+}
 
-  $("condition").textContent = "Sale Report";
-  $("place").textContent = `${sales.length} sale record`;
-  $("temperature").textContent = formatMoney(monthly).replace("RM ", "RM");
-  $("feelsLike").textContent = formatMoney(daily).replace("RM ", "RM");
-  $("humidity").textContent = formatMoney(weekly).replace("RM ", "RM");
-  $("wind").textContent = formatMoney(monthly).replace("RM ", "RM");
-  $("pressure").textContent = activeProjects;
+function renderSalesReportPanel() {
+  const stats = getSaleReportStats();
+  const totalCount = Math.max(stats.sales.length, 1);
+  const activePercent = Math.round((stats.active / totalCount) * 100);
+  const finishPercent = Math.round((stats.finish / totalCount) * 100);
+  const cancelPercent = Math.round((stats.cancel / totalCount) * 100);
+  $("salesReportPanel").innerHTML = `
+    <section class="sales-report-card">
+      <div class="sales-report-head">
+        <div>
+          <span>Sale Report</span>
+          <h3>${formatMoney(stats.monthly)}</h3>
+          <p>Monthly revenue • ${stats.sales.length} sale record</p>
+        </div>
+        <strong>${stats.active} Active</strong>
+      </div>
+      <div class="sales-report-grid">
+        <div><dt>${formatMoney(stats.daily)}</dt><dd>Daily</dd></div>
+        <div><dt>${formatMoney(stats.weekly)}</dt><dd>Weekly</dd></div>
+        <div><dt>${formatMoney(stats.totalRevenue)}</dt><dd>Total Revenue</dd></div>
+        <div><dt>${formatMoney(stats.average)}</dt><dd>Average Sale</dd></div>
+      </div>
+      <div class="sales-status-row">
+        <div><strong>${stats.active}</strong><span>In progress</span></div>
+        <div><strong>${stats.due}</strong><span>Due date</span></div>
+        <div><strong>${stats.finish}</strong><span>Finish</span></div>
+        <div><strong>${stats.cancel}</strong><span>Cancel</span></div>
+      </div>
+      <div class="sales-progress" aria-label="Sale status progress">
+        <span class="active" style="width:${activePercent}%"></span>
+        <span class="finish" style="width:${finishPercent}%"></span>
+        <span class="cancel" style="width:${cancelPercent}%"></span>
+      </div>
+      <p class="sales-report-note">Report dikira dari semua booking yang sudah generate invoice.</p>
+    </section>
+  `;
 }
 
 function openBookingPanel(serviceIndex) {
@@ -1563,23 +2224,132 @@ function toggleBookingService(index) {
   if (group) group.classList.toggle("open");
 }
 
-function buildQuotationHtml({ customer, valid, items, note }) {
+function formatInvoiceDate(value) {
+  const date = value ? new Date(value) : new Date();
+  const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
+  const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+  return `${String(safeDate.getDate()).padStart(2, "0")},${months[safeDate.getMonth()]},${safeDate.getFullYear()}`;
+}
+
+function invoiceNumber(value) {
+  return String(value || Date.now()).slice(-4).padStart(4, "0");
+}
+
+function buildQuotationHtml(data) {
+  const { customer, businessName, address, phone, email, valid, items, note, id, createdAt } = data;
   const company = getCompany();
+  const settings = getSettings();
   const total = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const rows = items.map((item, index) => `
-    <tr><td>${index + 1}</td><td>${escapeHtml(item.name)}</td><td>${formatMoney(item.amount)}</td></tr>
-  `).join("");
-  return `<!doctype html><html><head><title>Quotation - ${escapeHtml(customer)}</title>
-    <style>body{font-family:Arial,sans-serif;padding:32px;color:#111}h1{margin:0}table{width:100%;border-collapse:collapse;margin-top:24px}td,th{border:1px solid #ddd;padding:10px;text-align:left}.total{text-align:right;font-size:20px;font-weight:700;margin-top:18px}.muted{color:#555}.note{margin-top:18px;padding:12px;background:#f4f4f4}</style>
+  const logoUrl = new URL("assets/brand/lubukit-secondary-logo.png", window.location.href).href;
+  const invoiceRows = items.map((item) => {
+    const amount = Number(item.amount || 0);
+    return `<tr><td class="center">1</td><td><strong>${escapeHtml(item.name)}</strong>${item.details ? `<small>${escapeHtml(item.details)}</small>` : ""}</td><td class="money">${formatMoney(amount).replace("RM ", "RM")}</td><td class="money">${formatMoney(amount).replace("RM ", "RM")}</td></tr>`;
+  }).join("");
+  const emptyRows = Array.from({ length: Math.max(0, 5 - items.length) }, () => "<tr><td>&nbsp;</td><td></td><td></td><td></td></tr>").join("");
+  const companyName = company.name || "Lubuk IT";
+  const companySsm = company.ssm || "TR0292390-X";
+  const companyAddress = company.address || "65, Jln Eco Majestic 9/1A, 43500 Semenyih, Selangor";
+  const companyPhone = company.phone || "011-33086137";
+  const bankName = settings.bankName || "MAYBANK";
+  const bankAccount = settings.bankAccount || "5582 7570 5354";
+  const bankHolder = settings.bankHolder || `${companyName} Enterprise`;
+  return `<!doctype html><html><head><title>Invoice - ${escapeHtml(customer)}</title>
+    <style>
+      @page{size:A4;margin:0}
+      *{box-sizing:border-box}
+      body{margin:0;background:#f7f7f5;color:#171717;font-family:Arial,Helvetica,sans-serif}
+      .page{width:794px;min-height:1123px;margin:0 auto;padding:64px 78px 42px;background:#fff;position:relative;overflow:hidden}
+      .page::before{content:"";position:absolute;inset:0 0 auto;height:14px;background:linear-gradient(90deg,#ff5c00,#ff7a1a,#ff2b00)}
+      .brand{text-align:center;margin-bottom:48px}
+      .brand img{width:286px;max-width:58%;height:auto;display:block;margin:0 auto 16px}
+      .brand p{margin:0;font-size:15px;font-style:italic;font-weight:800;color:#222}
+      .doc-head{display:grid;grid-template-columns:1fr auto;align-items:end;margin-bottom:28px}
+      .doc-title h1{margin:0;color:#ff5c00;font-size:42px;letter-spacing:0;font-weight:900}
+      .doc-title p{margin:4px 0 0;color:#777;font-size:12px;text-transform:uppercase;letter-spacing:.16em;font-weight:800}
+      .invoice-pill{min-width:128px;border-radius:18px;padding:14px 18px;background:#171717;color:#fff;text-align:center}
+      .invoice-pill span{display:block;color:#ff7a1a;font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+      .invoice-pill strong{display:block;margin-top:4px;font-size:20px}
+      .top{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:28px;font-size:13px;line-height:1.35}
+      .info-card{border:1px solid #ededed;border-radius:18px;padding:18px 20px;background:#fcfcfb}
+      .info-card h2{margin:0 0 14px;color:#ff5c00;font-size:11px;letter-spacing:.16em;text-transform:uppercase}
+      .line{display:grid;grid-template-columns:112px 1fr;gap:12px;margin-top:8px}
+      .line b{font-size:12px;color:#171717}
+      .line span{color:#2a2a2a}
+      b{font-weight:900}
+      .divider{height:2px;background:linear-gradient(90deg,#14877f,#62d8ff);margin:20px 0 18px}
+      .to{display:grid;grid-template-columns:84px 170px 1fr;gap:12px 0;margin:0 0 34px;font-size:14px;line-height:1.28}
+      .to b{font-size:13px}
+      .to .value{white-space:pre-line}
+      table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:14px;border:1px solid #ececec;border-radius:14px;overflow:hidden}
+      th{background:#ff6500;color:#fff;font-weight:900;text-align:center;padding:13px 8px;border-right:1px solid rgba(255,255,255,.5)}
+      th:last-child{border-right:0}
+      td{height:42px;border-right:1px solid #ececec;border-bottom:1px solid #ececec;padding:11px 10px;vertical-align:top}
+      td:last-child{border-right:0}
+      tbody tr:nth-child(even) td{background:#fcfcfc}
+      td small{display:block;margin-top:4px;color:#777;font-size:11px;line-height:1.25}
+      th:nth-child(1),td:nth-child(1){width:17%}
+      th:nth-child(2),td:nth-child(2){width:44%}
+      th:nth-child(3),td:nth-child(3){width:16.5%}
+      th:nth-child(4),td:nth-child(4){width:22.5%}
+      .center{text-align:center}
+      .money{text-align:right;font-weight:800}
+      .total-label{background:#ff6500!important;color:#fff;text-align:right;font-weight:900;font-size:15px}
+      .total-value{background:#ff0808!important;color:#fff;text-align:right;font-weight:900;font-size:16px}
+      .terms{margin-top:56px;border-radius:16px;padding:18px 20px;background:#fff8f1;font-size:17px;line-height:1.45}
+      .terms h3{margin:0 0 8px;color:#65461f;font-size:18px}
+      .terms p{margin:0}
+      .thanks{text-align:center;margin-top:24px;font-weight:900;font-size:18px;color:#171717}
+      .footer{text-align:center;margin-top:18px;font-size:14px;color:#333}
+      .note{margin-top:14px;border-left:4px solid #ff6500;padding:10px 12px;background:#fafafa;font-size:12px;color:#555}
+      @media print{.page{margin:0;box-shadow:none}body{background:#fff}}
+    </style>
   </head><body>
-    <h1>${escapeHtml(company.name || "Lubuk IT")}</h1>
-    <p class="muted">${escapeHtml(company.address || "")}<br>${escapeHtml(company.phone || "")} ${escapeHtml(company.email || "")}</p>
-    <h2>Quotation</h2>
-    <p><strong>Customer:</strong> ${escapeHtml(customer)}<br><strong>Valid/Due:</strong> ${escapeHtml(valid || "-")}</p>
-    <table><thead><tr><th>No</th><th>Item</th><th>Price</th></tr></thead><tbody>${rows}</tbody></table>
-    <div class="total">Total: ${formatMoney(total)}</div>
-    ${note ? `<div class="note"><strong>Note:</strong><br>${escapeHtml(note)}</div>` : ""}
-    <p class="muted">Socmed: ${escapeHtml([company.instagram, company.facebook, company.tiktok].filter(Boolean).join(" | "))}</p>
+    <main class="page">
+      <section class="brand">
+        <img src="${logoUrl}" alt="Lubuk IT">
+        <p>${escapeHtml(companyName)} Enterprise (${escapeHtml(companySsm)})</p>
+      </section>
+      <section class="doc-head">
+        <div class="doc-title">
+          <h1>INVOICE</h1>
+          <p>Design service billing</p>
+        </div>
+        <div class="invoice-pill"><span>Invoice No</span><strong>${invoiceNumber(id)}</strong></div>
+      </section>
+      <section class="top">
+        <div class="info-card">
+          <h2>Company</h2>
+          <div class="line"><b>COMPANY NAME</b><span>${escapeHtml(companyName.replace(/\s+/g, ""))}</span></div>
+          <div class="line"><b>SSM</b><span>${escapeHtml(companySsm)}</span></div>
+          <div class="line"><b>CONTACT</b><span>${escapeHtml(companyPhone)}</span></div>
+        </div>
+        <div class="info-card">
+          <h2>Payment</h2>
+          <div class="line"><b>DATE</b><span>${formatInvoiceDate(createdAt || valid)}</span></div>
+          <div class="line"><b>ACCOUNT</b><span>${escapeHtml(bankHolder).toUpperCase()}</span></div>
+          <div class="line"><b>BANK</b><span>${escapeHtml(bankName).toUpperCase()}</span></div>
+          <div class="line"><b>BANK NO</b><span>${escapeHtml(bankAccount)}</span></div>
+        </div>
+      </section>
+      <div class="divider"></div>
+      <section class="to">
+        <b>TO:</b><b>NAME:</b><span>${escapeHtml(customer || "-")}</span>
+        <span></span><b>BUSINESS NAME:</b><span>${escapeHtml(businessName || "-")}</span>
+        <span></span><b>ADDRESS:</b><span class="value">${escapeHtml(address || "-")}</span>
+        <span></span><b>PHONE:</b><span>${escapeHtml(phone || email || "-")}</span>
+      </section>
+      <table>
+        <thead><tr><th>AMOUNT</th><th>ITEM DESCRIPTION</th><th>PRICE</th><th>TOTAL</th></tr></thead>
+        <tbody>${invoiceRows}${emptyRows}<tr><td colspan="3" class="total-label">TOTAL:</td><td class="total-value">${formatMoney(total).replace("RM ", "RM")}</td></tr></tbody>
+      </table>
+      ${note ? `<div class="note"><b>Note:</b> ${escapeHtml(note)}</div>` : ""}
+      <section class="terms">
+        <h3>Terms & Conditions</h3>
+        <p>&bull; Deposit payment is required upon receipt of this quote.</p>
+      </section>
+      <div class="thanks">THANK YOU!</div>
+      <div class="footer">${escapeHtml(companyAddress)} / ${escapeHtml(companyPhone)}</div>
+    </main>
     <script>window.onload=()=>window.print();<\/script>
   </body></html>`;
 }
@@ -1624,8 +2394,10 @@ function saveBooking(event) {
     service: serviceNames.join(", "),
     services: serviceNames,
     customer,
+    businessName: $("bookingBusinessName").value.trim(),
     phone: $("bookingClientPhone").value.trim(),
     email: $("bookingClientEmail").value.trim(),
+    address: $("bookingClientAddress").value.trim(),
     due: $("bookingDueDate").value,
     status: "in-project",
     note: $("bookingNote").value.trim(),
@@ -1633,7 +2405,7 @@ function saveBooking(event) {
     total: items.reduce((sum, item) => sum + Number(item.amount || 0), 0)
   };
   setSales([sale, ...getSales()]);
-  printQuotation({ customer: sale.customer, valid: sale.due, items: sale.items, note: sale.note });
+  printQuotation(sale);
   openSalesPanel();
 }
 
@@ -1648,6 +2420,7 @@ function projectStatusLabel(status) {
 
 function renderProjects() {
   const sales = getSales();
+  renderProjectReport();
   $("projectList").innerHTML = sales.length ? sales.map((sale) => {
     const status = sale.status || "in-project";
     return `
@@ -1679,6 +2452,168 @@ function renderProjects() {
       </article>
     `;
   }).join("") : "<div class=\"identity-result\"><p>Belum ada project. Bila client booking dan generate quotation, project akan masuk sini.</p></div>";
+}
+
+function taskDateKey(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 10);
+  return date.toISOString().slice(0, 10);
+}
+
+function getTasks() {
+  try {
+    return JSON.parse(storage.getItem("staffTasks") || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function setTasks(tasks) {
+  storage.setItem("staffTasks", JSON.stringify(tasks));
+}
+
+function setDefaultTaskDate() {
+  if ($("taskDate") && !$("taskDate").value) $("taskDate").value = taskDateKey();
+}
+
+function switchProjectTab(tabName) {
+  document.querySelectorAll("[data-project-tab]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.projectTab === tabName);
+  });
+  $("projectSection").hidden = tabName !== "projects";
+  $("taskSection").hidden = tabName !== "tasks";
+  $("adminSection").hidden = tabName !== "admin";
+}
+
+function saveTask(event) {
+  event.preventDefault();
+  const task = {
+    id: Date.now(),
+    staff: $("taskStaff").value.trim(),
+    date: $("taskDate").value || taskDateKey(),
+    title: $("taskTitle").value.trim(),
+    status: "pending",
+    createdAt: new Date().toISOString()
+  };
+  if (!task.staff || !task.title) {
+    window.alert("Masukkan nama staff dan task.");
+    return;
+  }
+  setTasks([task, ...getTasks()]);
+  $("taskTitle").value = "";
+  renderTasks();
+  renderAdminTasks();
+}
+
+function renderTasks() {
+  const tasks = getTasks();
+  const today = taskDateKey();
+  const todaysTasks = tasks.filter((task) => (task.date || today) === today);
+  const historyTasks = tasks.filter((task) => (task.date || today) !== today).slice(0, 30);
+  const grouped = todaysTasks.reduce((groups, task) => {
+    const staff = task.staff || "Staff";
+    groups[staff] = groups[staff] || [];
+    groups[staff].push(task);
+    return groups;
+  }, {});
+  $("taskTodaySummary").textContent = `${todaysTasks.filter((task) => task.status === "done").length}/${todaysTasks.length} done`;
+  $("taskHistorySummary").textContent = `${historyTasks.length} record`;
+  $("taskList").innerHTML = Object.keys(grouped).length ? Object.entries(grouped).map(([staff, staffTasks]) => `
+    <article class="task-staff-card">
+      <div class="task-staff-head">
+        <h3>${escapeHtml(staff)}</h3>
+        <span>${staffTasks.filter((task) => task.status === "done").length}/${staffTasks.length} done</span>
+      </div>
+      <div class="task-items">
+        ${staffTasks.map((task) => `
+          <label class="task-item ${task.status === "done" ? "done" : ""}">
+            <input type="checkbox" data-task-status="${task.id}" ${task.status === "done" ? "checked" : ""}>
+            <span>${escapeHtml(task.title)}</span>
+          </label>
+        `).join("")}
+      </div>
+    </article>
+  `).join("") : "<div class=\"identity-result\"><p>Belum ada daily task hari ini. Admin boleh create task harian untuk staff.</p></div>";
+  $("taskHistory").innerHTML = historyTasks.length ? historyTasks.map((task) => `
+    <article class="task-history-item ${task.status === "done" ? "done" : ""}">
+      <div>
+        <strong>${escapeHtml(task.staff || "Staff")}</strong>
+        <span>${escapeHtml(taskDateKey(task.date))} • ${task.status === "done" ? "Done" : "Pending"}</span>
+      </div>
+      <p>${escapeHtml(task.title || "")}</p>
+    </article>
+  `).join("") : "<div class=\"identity-result\"><p>Belum ada history task.</p></div>";
+  renderProjectReport();
+}
+
+function renderAdminTasks() {
+  if (!$("adminTaskList")) return;
+  const tasks = getTasks();
+  $("adminTaskList").innerHTML = tasks.length ? tasks.slice(0, 40).map((task) => `
+    <article class="task-admin-card">
+      <div>
+        <h3>${escapeHtml(task.staff || "Staff")}</h3>
+        <p>${escapeHtml(taskDateKey(task.date))} • ${task.status === "done" ? "Done" : "Pending"}</p>
+        <span>${escapeHtml(task.title || "")}</span>
+      </div>
+      <button type="button" data-delete-task="${task.id}">Delete</button>
+    </article>
+  `).join("") : "<div class=\"identity-result\"><p>Belum ada task. Create daily task untuk staff di atas.</p></div>";
+}
+
+function renderProjectReport() {
+  if (!$("projectReport")) return;
+  const sales = getSales();
+  const todayKey = taskDateKey();
+  const today = new Date(todayKey);
+  const dueSoon = sales.filter((sale) => {
+    if (!sale.due || ["finish", "cancel"].includes(sale.status || "in-project")) return false;
+    const due = new Date(sale.due);
+    const diff = Math.ceil((due - today) / 86400000);
+    return diff >= 0 && diff <= 3;
+  }).length;
+  const active = sales.filter((sale) => !["finish", "cancel"].includes(sale.status || "in-project")).length;
+  const finish = sales.filter((sale) => (sale.status || "in-project") === "finish").length;
+  const cancel = sales.filter((sale) => (sale.status || "in-project") === "cancel").length;
+  const tasks = getTasks().filter((task) => (task.date || todayKey) === todayKey);
+  const doneTasks = tasks.filter((task) => task.status === "done").length;
+  const staffCount = new Set(tasks.map((task) => task.staff).filter(Boolean)).size;
+  $("projectReport").innerHTML = `
+    <section class="project-report-card">
+      <div class="project-report-head">
+        <div>
+          <span>Project Report</span>
+          <h3>${active} Active Project</h3>
+        </div>
+        <strong>${sales.length}</strong>
+      </div>
+      <div class="project-report-grid">
+        <div><strong>${dueSoon}</strong><span>Due Soon</span></div>
+        <div><strong>${finish}</strong><span>Finish</span></div>
+        <div><strong>${cancel}</strong><span>Cancel</span></div>
+        <div><strong>${tasks.length}</strong><span>Task Today</span></div>
+        <div><strong>${doneTasks}</strong><span>Task Done</span></div>
+        <div><strong>${staffCount}</strong><span>Staff Work</span></div>
+      </div>
+    </section>
+  `;
+}
+
+function updateTaskStatus(id, done) {
+  const tasks = getTasks();
+  const task = tasks.find((item) => String(item.id) === String(id));
+  if (!task) return;
+  task.status = done ? "done" : "pending";
+  setTasks(tasks);
+  renderTasks();
+  renderAdminTasks();
+}
+
+function deleteTask(id) {
+  if (!window.confirm("Delete task ini?")) return;
+  setTasks(getTasks().filter((task) => String(task.id) !== String(id)));
+  renderTasks();
+  renderAdminTasks();
 }
 
 function openProjectChat(id) {
@@ -1823,10 +2758,12 @@ function updateProjectStatus(id, status) {
   setSales(sales);
   renderProjects();
   renderSales();
+  renderProjectReport();
 }
 
 function renderSales() {
   const sales = getSales();
+  renderSalesReportPanel();
   $("salesList").innerHTML = sales.length ? sales.map((sale) => `
     <article class="sale-card">
       <div class="sale-card-head">
@@ -1845,7 +2782,7 @@ function renderSales() {
         ${sale.items.map((item) => `<p>${escapeHtml(item.name)} <strong>${formatMoney(item.amount)}</strong></p>`).join("")}
       </div>
       ${sale.note ? `<p class="sale-note">${escapeHtml(sale.note)}</p>` : ""}
-      <button type="button" data-print-sale="${sale.id}">Print Quotation</button>
+      <button type="button" data-print-sale="${sale.id}">Print Invoice</button>
     </article>
   `).join("") : "<div class=\"identity-result\"><p>Belum ada sale. Tekan Book Now dekat mana-mana service untuk mula booking.</p></div>";
 }
@@ -1853,7 +2790,7 @@ function renderSales() {
 function printSaleQuotation(id) {
   const sale = getSales().find((item) => String(item.id) === String(id));
   if (!sale) return;
-  printQuotation({ customer: sale.customer, valid: sale.due, items: sale.items, note: sale.note });
+  printQuotation(sale);
 }
 
 function downloadServiceImage(serviceIndex) {
@@ -1933,28 +2870,6 @@ function detectIdentityTypes(info, hasImage) {
   if (hasImage) types.push("Image attached");
   if (!types.length && info.trim()) types.push("General text");
   return types;
-}
-
-function analyzeIdentity(event) {
-  event.preventDefault();
-  const info = $("identityInput").value.trim();
-  const hasImage = Boolean($("identityImage").files?.[0]);
-  const purpose = $("identityPurpose").value;
-  const types = detectIdentityTypes(info, hasImage);
-  const risk = types.includes("Link / social profile") || types.includes("Phone number") ? "Medium" : "Low";
-  const cleanPhone = (info.match(/\+?\d[\d\s\-()]{7,}/) || [""])[0].replace(/[^\d+]/g, "");
-
-  $("identityResult").innerHTML = `
-    <p><strong>Detected:</strong> ${escapeHtml(types.join(", ") || "Nothing yet")}</p>
-    <p><strong>Purpose:</strong> ${escapeHtml(purpose)}</p>
-    <p><strong>Risk:</strong> ${risk}</p>
-    ${cleanPhone ? `<p><strong>Phone format:</strong> ${escapeHtml(cleanPhone)}</p>` : ""}
-    <ul>
-      <li>Analisis ini hanya guna info yang awak masukkan.</li>
-      <li>Ia tidak mencari alamat, IC, lokasi, keluarga, atau data peribadi orang.</li>
-      <li>Untuk safety/scam check, sahkan melalui sumber rasmi dan jangan dedahkan maklumat sensitif.</li>
-    </ul>
-  `;
 }
 
 function getYoutubeId(value) {
@@ -2281,7 +3196,7 @@ function setupInteractions() {
     }
 
     if (tab) {
-      switchView(tab.dataset.tab || "home", tab);
+      switchView(tab.dataset.tab || "main", tab);
       setNavActive("home");
       return;
     }
@@ -2321,14 +3236,20 @@ function setupInteractions() {
     if (type === "resetApp") resetAppData();
     if (type === "downloadApp") downloadAppNow();
     if (type === "openCalendarNote") openCalendarNote();
-    if (type === "identity") openIdentityPanel();
     if (type === "target") openTargetPanel();
     if (type === "companyDetail") openCompanyPanel();
     if (type === "priceList") openPricePanel();
     if (type === "project") openProjectPanel();
     if (type === "sales") openSalesPanel();
     if (type === "sop") openSopPanel();
+    if (type === "attendance") openAttendancePanel();
     if (type === "achievement") openAchievementPanel();
+    if (type === "punchIn") startPunch("in");
+    if (type === "punchOut") startPunch("out");
+    if (type === "captureAttendance") captureAttendancePhoto();
+    if (type === "cancelAttendance") resetAttendanceForm();
+    if (type === "addStaff") openStaffForm();
+    if (type === "cancelStaffEdit") resetStaffForm();
     if (type === "addNewService") togglePriceBuilder();
     if (type === "cancelAddService") resetPriceForm();
     if (type === "addNewSOP") toggleSopBuilder();
@@ -2411,6 +3332,30 @@ function setupInteractions() {
     updateProjectStatus(status.dataset.projectStatus, status.value);
   });
 
+  document.querySelectorAll("[data-project-tab]").forEach((button) => {
+    button.addEventListener("click", () => switchProjectTab(button.dataset.projectTab));
+  });
+
+  $("taskForm").addEventListener("submit", saveTask);
+
+  $("taskList").addEventListener("change", (event) => {
+    const checkbox = event.target.closest("[data-task-status]");
+    if (!checkbox) return;
+    updateTaskStatus(checkbox.dataset.taskStatus, checkbox.checked);
+  });
+
+  $("taskList").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-delete-task]");
+    if (!button) return;
+    deleteTask(button.dataset.deleteTask);
+  });
+
+  $("adminTaskList").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-delete-task]");
+    if (!button) return;
+    deleteTask(button.dataset.deleteTask);
+  });
+
   $("targetList").addEventListener("click", (event) => {
     const deleteButton = event.target.closest("[data-delete-target]");
     const transferButton = event.target.closest("[data-transfer-target]");
@@ -2422,6 +3367,33 @@ function setupInteractions() {
     const reminder = event.target.closest("[data-target-reminder]");
     if (!reminder) return;
     toggleTargetReminder(Number(reminder.dataset.targetReminder), reminder.checked);
+  });
+
+  document.querySelectorAll("[data-attendance-tab]").forEach((button) => {
+    button.addEventListener("click", () => switchAttendanceTab(button.dataset.attendanceTab));
+  });
+
+  $("staffForm").addEventListener("submit", saveStaffProfile);
+
+  $("staffPhoto").addEventListener("change", async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      staffPhotoData = await compressStaffPhoto(file);
+    } catch (error) {
+      staffPhotoData = "";
+      event.target.value = "";
+      window.alert(error.message || "Sila pilih gambar JPEG atau PNG sahaja.");
+    }
+  });
+
+  $("staffList").addEventListener("click", (event) => {
+    const statButton = event.target.closest("[data-staff-stat]");
+    const editButton = event.target.closest("[data-edit-staff]");
+    const deleteButton = event.target.closest("[data-delete-staff]");
+    if (statButton) openStaffStatistic(statButton.dataset.staffStat);
+    if (editButton) editStaffProfile(editButton.dataset.editStaff);
+    if (deleteButton) deleteStaffProfile(deleteButton.dataset.deleteStaff);
   });
 
   $("calendarGrid").addEventListener("click", (event) => {
@@ -2506,8 +3478,6 @@ function setupInteractions() {
     saveCalendarNote();
   });
 
-  $("identityForm").addEventListener("submit", analyzeIdentity);
-
   $("targetForm").addEventListener("submit", saveTarget);
 
   $("companyForm").addEventListener("submit", saveCompany);
@@ -2523,6 +3493,8 @@ function setupInteractions() {
   $("sopForm").addEventListener("submit", saveSop);
 
   $("achievementForm").addEventListener("submit", saveAchievement);
+
+  $("attendanceForm").addEventListener("submit", saveAttendance);
 
   $("packageCount").addEventListener("change", () => renderPricePackageInputs());
 
@@ -2562,8 +3534,13 @@ checkSalaryNotifications();
 window.setInterval(checkBirthdayNotification, 60 * 60 * 1000);
 window.setInterval(checkCalendarNotifications, 60 * 60 * 1000);
 window.setInterval(checkSalaryNotifications, 60 * 60 * 1000);
+window.setInterval(updateMainClock, 1000);
+window.setInterval(() => {
+  if (activeViewName() === "main") renderMainDashboard();
+}, 30000);
+window.setInterval(updateAttendanceClocks, 30 * 1000);
 setupInteractions();
-activateTab(getSettings().defaultTab || "home");
+activateTab("main");
 openSharedProjectChat();
 $("refreshWeather").addEventListener("click", () => {
   const activeTab = document.querySelector(".tab.active")?.dataset.tab;
